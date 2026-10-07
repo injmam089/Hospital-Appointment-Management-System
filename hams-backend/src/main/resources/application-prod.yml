@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      pool-name: HamsProdHikariPool
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+hams:
+  jwt:
+    # In production, JWT_SECRET is strictly mandatory with NO fallback to prevent default key vulnerabilities.
+    secret: ${JWT_SECRET}
+    access-token-expiry-ms: ${JWT_ACCESS_EXPIRY:900000}
+    refresh-token-expiry-ms: ${JWT_REFRESH_EXPIRY:604800000}
+  admin:
+    default-email: ${ADMIN_EMAIL}
+    default-password: ${ADMIN_PASSWORD}
+  seed:
+    demo-data: ${SEED_DEMO_DATA:true}
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+logging:
+  level:
+    com.hams: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: ERROR

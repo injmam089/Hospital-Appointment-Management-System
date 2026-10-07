@@ -1,0 +1,627 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Search, Stethoscope, CheckCircle2,
+  X, ChevronRight, Ban, Moon,
+  Check
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { publicApi, type PublicDoctorSearchParams } from '../../api/public';
+import { scheduleApi } from '../../api/schedule';
+import { appointmentApi } from '../../api/appointment';
+import { useAuthStore } from '../../store/authStore';
+import { PublicNavbar } from '../../components/layout/PublicNavbar';
+import { Footer } from '../../components/layout/Footer';
+import { Button } from '../../components/ui/Button';
+import { extractApiError } from '../../api/client';
+import { formatDate, formatTime } from '../../lib/utils';
+import type { Doctor, Department, DoctorDaySlots, TimeSlotDto, AppointmentResponse } from '../../types';
+
+export function DoctorDiscoveryPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
+
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [selectedDept, setSelectedDept] = useState<number | undefined>(
+    searchParams.get('dept') ? Number(searchParams.get('dept')) : undefined
+  );
+
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+
+  // Live Slot Preview in Modal
+  const [previewDate, setPreviewDate] = useState(() => {
+    const tmr = new Date();
+    tmr.setDate(tmr.getDate() + 1);
+    return tmr.toISOString().split('T')[0];
+  });
+  const [slotsData, setSlotsData] = useState<DoctorDaySlots | null>(null);
+  const [isSlotsLoading, setIsSlotsLoading] = useState(false);
+
+  // Booking Flow States
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlotDto | null>(null);
+  const [appointmentReason, setAppointmentReason] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState<AppointmentResponse | null>(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    fetchDoctors();
+  }, [search, selectedDept]);
+
+  useEffect(() => {
+    if (selectedDoctor && previewDate) {
+      setSelectedSlot(null);
+      fetchDoctorSlots(selectedDoctor.id, previewDate);
+    } else {
+      setSlotsData(null);
+    }
+  }, [selectedDoctor, previewDate]);
+
+  const fetchDepartments = async () => {
+    try {
+      const data = await publicApi.getDepartments();
+      setDepartments(data);
+    } catch {
+      // Non-blocking
+    }
+  };
+
+  const fetchDoctors = async () => {
+    setIsLoading(true);
+    try {
+      const params: PublicDoctorSearchParams = {};
+      if (search.trim()) params.search = search.trim();
+      if (selectedDept !== undefined) params.departmentId = selectedDept;
+
+      const res = await publicApi.getDoctors(params);
+      setDoctors(res.content);
+      setTotalElements(res.totalElements);
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchDoctorSlots = async (doctorId: number, dateStr: string) => {
+    setIsSlotsLoading(true);
+    try {
+      const res = await scheduleApi.getPublicSlots(doctorId, dateStr);
+      setSlotsData(res);
+    } catch {
+      setSlotsData(null);
+    } finally {
+      setIsSlotsLoading(false);
+    }
+  };
+
+  const handleSelectDept = (deptId: number | undefined) => {
+    setSelectedDept(deptId);
+    if (deptId !== undefined) {
+      setSearchParams({ dept: String(deptId), ...(search ? { search } : {}) });
+    } else {
+      setSearchParams(search ? { search } : {});
+    }
+  };
+
+  const handleOpenDoctorModal = (doc: Doctor) => {
+    setSelectedDoctor(doc);
+    setSelectedSlot(null);
+    setAppointmentReason('');
+    setBookingSuccess(null);
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!selectedDoctor || !selectedSlot) return;
+
+    if (!isAuthenticated) {
+      toast.error('Please sign in as a patient to reserve this appointment.');
+      navigate('/login');
+      return;
+    }
+
+    if (user?.role !== 'PATIENT') {
+      toast.error('Only patient accounts are authorized to reserve appointment slots.');
+      return;
+    }
+
+    setIsBooking(true);
+    try {
+      const payload = {
+        doctorId: selectedDoctor.id,
+        appointmentDate: previewDate,
+        appointmentTime: selectedSlot.startTime,
+        reason: appointmentReason.trim() || undefined,
+      };
+
+      const result = await appointmentApi.bookAppointment(payload);
+      setBookingSuccess(result);
+      toast.success('Appointment booked successfully!');
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F7F9FC] text-[#0F172A] font-sans">
+      <PublicNavbar />
+
+      <main className="page-container pt-28 pb-20">
+        {/* Header / Intro */}
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold text-[#2563EB] uppercase tracking-wider block mb-1">
+                Clinical Directory
+              </span>
+              <h1 className="font-display font-bold text-3xl sm:text-4xl text-[#0F172A] tracking-tight">
+                Find a Verified Doctor
+              </h1>
+              <p className="text-sm text-[#64748B] mt-1.5 max-w-xl">
+                Explore hospital specialists, check verified clinical credentials, and book appointments directly.
+              </p>
+            </div>
+            <div className="text-xs text-[#64748B] font-medium bg-white px-3.5 py-2 rounded-xl border border-[#E2E8F0] shadow-subtle self-start md:self-auto">
+              <span className="font-bold text-[#0F172A]">{totalElements}</span> Verified Clinicians Available
+            </div>
+          </div>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-card mb-8 space-y-4">
+          <div className="relative">
+            <Search className="w-5 h-5 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by physician name, clinical specialty, or medical expertise..."
+              className="w-full pl-11 pr-4 py-3 bg-[#F7F9FC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15 focus:border-[#2563EB] transition-all"
+            />
+          </div>
+
+          {/* Department Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide text-xs">
+            <button
+              onClick={() => handleSelectDept(undefined)}
+              className={`px-3.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                selectedDept === undefined
+                  ? 'bg-[#2563EB] text-white shadow-sm'
+                  : 'bg-[#F7F9FC] text-[#64748B] hover:text-[#0F172A] hover:bg-slate-200/70'
+              }`}
+            >
+              All Departments
+            </button>
+            {departments.map((dept) => (
+              <button
+                key={dept.id}
+                onClick={() => handleSelectDept(dept.id)}
+                className={`px-3.5 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all ${
+                  selectedDept === dept.id
+                    ? 'bg-[#2563EB] text-white shadow-sm'
+                    : 'bg-[#F7F9FC] text-[#64748B] hover:text-[#0F172A] hover:bg-slate-200/70'
+                }`}
+              >
+                {dept.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Doctors Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className="bg-white rounded-2xl border border-[#E2E8F0] p-6 shadow-card animate-pulse space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-200" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  </div>
+                </div>
+                <div className="h-3 bg-slate-200 rounded w-full" />
+                <div className="h-9 bg-slate-200 rounded-xl w-full" />
+              </div>
+            ))}
+          </div>
+        ) : doctors.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center max-w-md mx-auto shadow-card">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#2563EB] flex items-center justify-center mx-auto mb-3">
+              <Stethoscope className="w-6 h-6" />
+            </div>
+            <h3 className="font-display font-bold text-lg text-[#0F172A]">No Doctors Found</h3>
+            <p className="text-xs text-[#64748B] mt-1 mb-5">
+              No medical professionals matched your search criteria. Try removing filters or searching by a different term.
+            </p>
+            <Button variant="secondary" size="sm" onClick={() => { setSearch(''); setSelectedDept(undefined); }}>
+              Reset Filters
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {doctors.map((doc) => (
+              <motion.div
+                key={doc.id}
+                className="bg-white rounded-2xl border border-[#E2E8F0] shadow-card hover:shadow-card-hover hover:border-blue-200 transition-all p-6 flex flex-col justify-between"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <div>
+                  {/* Doctor Identity Header */}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] font-bold text-lg flex-shrink-0">
+                      {doc.firstName.charAt(0)}{doc.lastName.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* DOMINANT DOCTOR NAME PER REQUIREMENTS */}
+                        <h3 className="font-display font-bold text-lg text-[#0F172A] truncate">
+                          Dr. {doc.fullName}
+                        </h3>
+                        {doc.verified && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">
+                            <Check className="w-2.5 h-2.5" />
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-[#2563EB] truncate mt-0.5">
+                        {doc.specialization}
+                      </p>
+                      <p className="text-xs text-[#64748B] truncate mt-0.5">
+                        {doc.departmentName || 'Medical Department'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Metadata Pills: Experience & Fee */}
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="p-2.5 bg-[#F7F9FC] rounded-xl border border-[#E2E8F0] text-center">
+                      <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Experience</span>
+                      <span className="text-xs font-bold text-[#0F172A]">{doc.experienceYears || '1+'} Years</span>
+                    </div>
+                    <div className="p-2.5 bg-[#F7F9FC] rounded-xl border border-[#E2E8F0] text-center">
+                      <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Consultation Fee</span>
+                      <span className="text-xs font-bold text-[#0F172A]">
+                        {doc.consultationFee ? `₹${doc.consultationFee}` : 'Free'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Short description / bio */}
+                  <p className="text-xs text-[#64748B] line-clamp-2 leading-relaxed mb-5">
+                    {doc.bio || `${doc.qualification || 'Certified practitioner'} providing expert clinical care in the ${doc.departmentName || 'hospital'} department.`}
+                  </p>
+                </div>
+
+                {/* Primary Booking CTA */}
+                <div className="pt-2">
+                  <Button
+                    variant="primary"
+                    className="w-full text-xs font-medium justify-between"
+                    onClick={() => handleOpenDoctorModal(doc)}
+                  >
+                    <span>Book Appointment</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* ============================================================ */}
+      {/* UPGRADED 5-STEP BOOKING MODAL (HIGH PRIORITY) */}
+      {/* ============================================================ */}
+      <AnimatePresence>
+        {selectedDoctor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F172A]/50 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              className="bg-white rounded-2xl max-w-lg w-full my-8 p-6 sm:p-7 shadow-modal border border-[#E2E8F0] relative max-h-[92vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedDoctor(null)}
+                className="absolute top-5 right-5 p-1.5 rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7F9FC] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* BOOKING SUCCESS SCREEN */}
+              {bookingSuccess ? (
+                <div className="py-6 text-center space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-[#0F172A] text-xl">Appointment Confirmed!</h3>
+                    <p className="text-xs text-[#64748B] mt-1">
+                      Your consultation slot has been reserved in real-time.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-[#F7F9FC] rounded-2xl border border-[#E2E8F0] text-left space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-[#64748B]">Booking Reference:</span>
+                      <span className="font-mono font-bold text-[#2563EB]">{bookingSuccess.appointmentRef}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#64748B]">Doctor:</span>
+                      <span className="font-semibold text-[#0F172A]">Dr. {bookingSuccess.doctorName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#64748B]">Specialty & Dept:</span>
+                      <span className="font-semibold text-[#0F172A]">{bookingSuccess.departmentName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#64748B]">Date:</span>
+                      <span className="font-semibold text-[#0F172A]">{formatDate(bookingSuccess.appointmentDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#64748B]">Time Slot:</span>
+                      <span className="font-semibold text-[#0F172A]">
+                        {formatTime(bookingSuccess.appointmentTime)} {bookingSuccess.endTime ? `– ${formatTime(bookingSuccess.endTime)}` : ''}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#64748B]">Status:</span>
+                      <span className="badge badge-blue">{bookingSuccess.status}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 flex flex-col sm:flex-row gap-3">
+                    <Button
+                      variant="primary"
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedDoctor(null);
+                        navigate('/patient/appointments');
+                      }}
+                    >
+                      View My Appointments
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setSelectedDoctor(null);
+                        setBookingSuccess(null);
+                      }}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* STEP 1: DOCTOR SUMMARY */}
+                  <div className="flex items-start gap-3.5 pb-4 border-b border-[#E2E8F0]">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] font-bold text-lg flex-shrink-0">
+                      {selectedDoctor.firstName.charAt(0)}{selectedDoctor.lastName.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="font-display font-bold text-lg text-[#0F172A]">
+                          Dr. {selectedDoctor.fullName}
+                        </h3>
+                        {selectedDoctor.verified && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <Check className="w-2.5 h-2.5" />
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-[#2563EB] mt-0.5">
+                        {selectedDoctor.specialization}
+                      </p>
+                      <p className="text-xs text-[#64748B]">
+                        {selectedDoctor.departmentName || 'Medical Department'} • {selectedDoctor.experienceYears || '1+'} Yrs Exp
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Fee</span>
+                      <span className="text-sm font-bold text-[#0F172A]">
+                        {selectedDoctor.consultationFee ? `₹${selectedDoctor.consultationFee}` : 'Free'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* STEP 2: SELECT CONSULTATION DATE */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[#475569] mb-1.5">
+                      Select Consultation Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        min={todayStr}
+                        value={previewDate}
+                        onChange={(e) => setPreviewDate(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15 focus:border-[#2563EB]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* STEP 3: AVAILABLE TIME SLOTS */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[#475569]">
+                        Available Time Slots
+                      </label>
+                      {selectedSlot && (
+                        <span className="text-xs font-semibold text-[#2563EB]">
+                          Selected: {selectedSlot.formattedTime}
+                        </span>
+                      )}
+                    </div>
+
+                    {isSlotsLoading ? (
+                      <div className="py-6 text-center">
+                        <div className="w-6 h-6 border-2 border-blue-200 border-t-[#2563EB] rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-xs text-[#64748B]">Checking real-time doctor availability...</p>
+                      </div>
+                    ) : !slotsData ? (
+                      <p className="text-xs text-[#64748B] py-2">Select a date to check available slots.</p>
+                    ) : slotsData.onLeave ? (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                        <Ban className="w-4 h-4 flex-shrink-0" />
+                        <span>Doctor is on leave on this date ({slotsData.leaveReason || 'Absence'}).</span>
+                      </div>
+                    ) : !slotsData.workingDay ? (
+                      <div className="p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-center gap-2">
+                        <Moon className="w-4 h-4 flex-shrink-0" />
+                        <span>Doctor does not hold clinic hours on {slotsData.dayOfWeek}s.</span>
+                      </div>
+                    ) : slotsData.slots.length === 0 ? (
+                      <p className="text-xs text-[#64748B] py-2">No open consultation slots on this date.</p>
+                    ) : (
+                      /* Time slots grid with explicit semantic states:
+                         Available: neutral/light
+                         Selected: primary blue
+                         Unavailable: muted/disabled
+                      */
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                        {slotsData.slots.map((slot: TimeSlotDto, idx: number) => {
+                          const isSelected = selectedSlot?.startTime === slot.startTime;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              disabled={!slot.available}
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`px-3 py-2 text-xs font-semibold rounded-xl border transition-all text-center ${
+                                !slot.available
+                                  ? 'bg-[#F1F5F9] text-[#94A3B8] border-[#E2E8F0] cursor-not-allowed line-through'
+                                  : isSelected
+                                  ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-sm'
+                                  : 'bg-white text-[#0F172A] border-[#E2E8F0] hover:border-blue-400 hover:bg-blue-50/50'
+                              }`}
+                            >
+                              {slot.formattedTime}
+                              {!slot.available && (
+                                <span className="block text-[9px] no-underline font-normal text-[#94A3B8]">
+                                  Booked
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* STEP 4: APPOINTMENT SUMMARY (When slot chosen) */}
+                  {selectedSlot && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3.5 bg-[#F7F9FC] border border-[#E2E8F0] rounded-xl space-y-2 text-xs"
+                    >
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#475569] block">
+                        Appointment Summary
+                      </span>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-[#64748B] block">Doctor</span>
+                          <span className="font-semibold text-[#0F172A]">Dr. {selectedDoctor.fullName}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#64748B] block">Specialty</span>
+                          <span className="font-semibold text-[#0F172A]">{selectedDoctor.specialization}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#64748B] block">Date</span>
+                          <span className="font-semibold text-[#0F172A]">{formatDate(previewDate)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#64748B] block">Time</span>
+                          <span className="font-semibold text-[#2563EB]">{selectedSlot.formattedTime}</span>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-[#E2E8F0] flex justify-between items-center">
+                        <span className="text-[#64748B]">Consultation Fee:</span>
+                        <span className="font-bold text-[#0F172A]">
+                          {selectedDoctor.consultationFee ? `₹${selectedDoctor.consultationFee}` : 'Free'}
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* STEP 5: REASON & CONFIRM BOOKING */}
+                  {selectedSlot && (
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[#475569] mb-1.5">
+                        Reason for Visit / Symptoms (Optional)
+                      </label>
+                      <textarea
+                        value={appointmentReason}
+                        onChange={(e) => setAppointmentReason(e.target.value)}
+                        placeholder="Brief summary of symptoms or purpose for consultation..."
+                        rows={2}
+                        className="w-full px-3 py-2 bg-white border border-[#E2E8F0] rounded-xl text-xs text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15 focus:border-[#2563EB] resize-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Auth notice if guest or non-patient */}
+                  {!isAuthenticated ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900">
+                      <span>Sign in as a patient to reserve this slot.</span>
+                      <Button variant="primary" size="sm" onClick={() => navigate('/login')}>
+                        Sign In
+                      </Button>
+                    </div>
+                  ) : user?.role !== 'PATIENT' ? (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                      You are signed in as a {user?.role}. Only patient accounts can book appointments.
+                    </div>
+                  ) : null}
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-[#E2E8F0] flex justify-end gap-2.5">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setSelectedDoctor(null)}
+                      disabled={isBooking}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={handleConfirmBooking}
+                      disabled={!selectedSlot || isBooking || (isAuthenticated && user?.role !== 'PATIENT')}
+                      isLoading={isBooking}
+                    >
+                      Confirm Appointment
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <Footer />
+    </div>
+  );
+}

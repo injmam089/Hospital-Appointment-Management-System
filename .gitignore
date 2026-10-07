@@ -1,0 +1,42 @@
+﻿# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+target/
+**/target/
+dist/
+**/dist/
+build/
+**/build/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+application-local.properties
+application-prod.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Docker local data
+postgres-data/

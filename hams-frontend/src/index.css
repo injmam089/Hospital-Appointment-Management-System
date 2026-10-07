@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #2563EB;
+    --color-navy: #0F172A;
+    --color-navy-deep: #0B1224;
+    --color-surface: #F7F9FC;
+    --color-card: #FFFFFF;
+    --color-border: #E2E8F0;
+    --color-muted: #64748B;
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    @apply bg-[#F7F9FC] text-[#0F172A] font-sans antialiased selection:bg-blue-100 selection:text-blue-900;
+    font-feature-settings: 'cv11', 'ss01', 'inter';
+    background-color: #F7F9FC;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display text-[#0F172A] tracking-tight;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#2563EB] text-white
+           text-sm font-medium rounded-btn shadow-sm transition-all duration-200
+           hover:bg-[#1D4ED8] active:scale-[0.98] focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed select-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-[#0F172A]
+           text-sm font-medium rounded-btn border border-[#E2E8F0] shadow-subtle transition-all duration-200
+           hover:bg-[#F8FAFC] hover:border-[#CBD5E1] active:scale-[0.98] focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed select-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-[#64748B]
+           text-sm font-medium rounded-btn transition-all duration-200
+           hover:bg-[#F1F5F9] hover:text-[#0F172A] active:scale-[0.98] focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2 select-none;
+  }
+
+  .card {
+    @apply bg-white rounded-card border border-[#E2E8F0] shadow-card transition-all duration-200;
+  }
+
+  .card-hoverable {
+    @apply bg-white rounded-card border border-[#E2E8F0] shadow-card transition-all duration-200 hover:shadow-card-hover hover:border-[#CBD5E1];
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-white border border-[#E2E8F0] rounded-btn text-sm text-[#0F172A]
+           placeholder:text-[#94A3B8] transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15 focus:border-[#2563EB]
+           disabled:bg-[#F1F5F9] disabled:cursor-not-allowed;
+  }
+
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wider text-[#475569] mb-1.5;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-md;
+  }
+
+  .badge-blue   { @apply badge bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE]/70; }
+  .badge-green  { @apply badge bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]/70; }
+  .badge-red    { @apply badge bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]/70; }
+  .badge-amber  { @apply badge bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]/70; }
+  .badge-purple { @apply badge bg-[#F5F3FF] text-[#6D28D9] border border-[#DDD6FE]/70; }
+  .badge-gray   { @apply badge bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]; }
+
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-[#0F172A] tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl mx-auto font-normal;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

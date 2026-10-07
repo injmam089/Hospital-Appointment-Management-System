@@ -1,0 +1,102 @@
+version: '3.9'
+
+services:
+  # ─────────────────────────────────────────────
+  # PostgreSQL Database
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: hams_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hamsdb}
+      POSTGRES_USER: ${POSTGRES_USER:-hams_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hams_pass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - hams_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hams_user} -d ${POSTGRES_DB:-hamsdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - hams_network
+
+  # ─────────────────────────────────────────────
+  # Spring Boot Backend API
+  # ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./hams-backend
+      dockerfile: Dockerfile
+    container_name: hams_backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-hamsdb}
+      DB_USERNAME: ${POSTGRES_USER:-hams_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-hams_pass}
+      JWT_SECRET: ${JWT_SECRET:-ThisIsAProductionGradeSecretKeyForHAMS2024MustBeAtLeast256BitsLongAndSecure!}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@hams.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@HAMS2024!}
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hams_network
+
+  # ─────────────────────────────────────────────
+  # React + Vite + Nginx Frontend
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./hams-frontend
+      dockerfile: Dockerfile
+    container_name: hams_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - hams_network
+
+  # ─────────────────────────────────────────────
+  # pgAdmin (optional — database GUI)
+  # ─────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hams_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${ADMIN_EMAIL:-admin@hams.local}
+      PGADMIN_DEFAULT_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - hams_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hams_network
+    profiles:
+      - tools  # Start only with: docker compose --profile tools up
+
+volumes:
+  hams_postgres_data:
+    driver: local
+  hams_pgadmin_data:
+    driver: local
+
+networks:
+  hams_network:
+    driver: bridge

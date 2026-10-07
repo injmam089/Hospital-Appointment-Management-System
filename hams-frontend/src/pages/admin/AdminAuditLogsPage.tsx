@@ -1,0 +1,291 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  History, Search, ArrowLeft,
+  ChevronLeft, ChevronRight, Eye, X, Terminal
+} from 'lucide-react';
+import { adminApi } from '../../api/admin';
+import type { AuditLogItem, PageResponse } from '../../types';
+import { formatDateTime } from '../../lib/utils';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { TableRowSkeleton } from '../../components/ui/LoadingSkeleton';
+import toast from 'react-hot-toast';
+
+export function AdminAuditLogsPage() {
+  const navigate = useNavigate();
+  const [logsPage, setLogsPage] = useState<PageResponse<AuditLogItem> | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // Filters
+  const [actionSearch, setActionSearch] = useState<string>('');
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(0);
+
+  // Modal
+  const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
+
+  const fetchAuditLogs = async () => {
+    setLoading(true);
+    try {
+      const data = await adminApi.getAuditLogs({
+        action: actionSearch.trim() || undefined,
+        entityType: entityTypeFilter || undefined,
+        page: currentPage,
+        size: 15,
+      });
+      setLogsPage(data);
+    } catch {
+      toast.error('Failed to load audit logs.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [currentPage, entityTypeFilter]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(0);
+    fetchAuditLogs();
+  };
+
+  const handleReset = () => {
+    setActionSearch('');
+    setEntityTypeFilter('');
+    setCurrentPage(0);
+  };
+
+  return (
+    <div className="min-h-screen bg-surface py-8">
+      <div className="page-container max-w-7xl space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/admin/dashboard')}
+              className="p-2 rounded-xl bg-white border border-border text-navy hover:bg-slate-100 transition-colors"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold font-display text-navy flex items-center gap-2">
+                <History className="w-6 h-6 text-primary-600" />
+                Audit Trail & Compliance
+              </h1>
+              <p className="text-xs text-muted mt-0.5">
+                Immutable chronological log of hospital system actions and administrative operations
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Card */}
+        <div className="card p-4">
+          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div className="sm:col-span-6">
+              <Input
+                placeholder="Search action keyword (e.g. APPOINTMENT, DOCTOR, USER)..."
+                value={actionSearch}
+                onChange={(e) => setActionSearch(e.target.value)}
+                leftIcon={<Search className="w-4 h-4 text-muted" />}
+              />
+            </div>
+            <div className="sm:col-span-3">
+              <select
+                aria-label="Filter by Entity Type"
+                className="input-field"
+                value={entityTypeFilter}
+                onChange={(e) => {
+                  setEntityTypeFilter(e.target.value);
+                  setCurrentPage(0);
+                }}
+              >
+                <option value="">All Entities</option>
+                <option value="APPOINTMENT">APPOINTMENT</option>
+                <option value="CONSULTATION">CONSULTATION</option>
+                <option value="PRESCRIPTION">PRESCRIPTION</option>
+                <option value="DOCTOR">DOCTOR</option>
+                <option value="USER">USER</option>
+                <option value="AUTH">AUTH</option>
+              </select>
+            </div>
+            <div className="sm:col-span-3 flex items-center gap-2">
+              <Button type="submit" variant="primary" className="flex-1">
+                Filter Logs
+              </Button>
+              <Button type="button" variant="ghost" onClick={handleReset} size="sm">
+                Reset
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {/* Logs Table */}
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-border text-muted font-semibold">
+                <tr>
+                  <th className="py-3 px-4">Timestamp</th>
+                  <th className="py-3 px-4">Action</th>
+                  <th className="py-3 px-4">Actor</th>
+                  <th className="py-3 px-4">Target Entity</th>
+                  <th className="py-3 px-4">IP Address</th>
+                  <th className="py-3 px-4 text-right">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <TableRowSkeleton key={i} cols={6} />
+                  ))
+                ) : !logsPage || logsPage.content.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12">
+                      <EmptyState
+                        icon={<History className="w-8 h-8 text-muted" />}
+                        title="No audit records match your filters"
+                        description="Try broadening your search term or selecting all entity types."
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  logsPage.content.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-4 font-mono text-muted whitespace-nowrap">
+                        {formatDateTime(log.createdAt)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-mono font-semibold text-navy bg-slate-100 px-2 py-0.5 rounded">
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="font-medium text-slate-800">{log.actorEmail || 'System / Anonymous'}</p>
+                        {log.userId && (
+                          <span className="text-[10px] text-muted font-mono">UID: #{log.userId}</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {log.entityType ? (
+                          <span className="text-muted">
+                            {log.entityType} {log.entityId ? `(#${log.entityId})` : ''}
+                          </span>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-muted">
+                        {log.ipAddress || 'internal'}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedLog(log)}
+                          leftIcon={<Eye className="w-3.5 h-3.5" />}
+                        >
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {logsPage && logsPage.totalPages > 1 && (
+            <div className="p-4 bg-slate-50 border-t border-border flex items-center justify-between">
+              <p className="text-xs text-muted">
+                Page <span className="font-semibold text-navy">{logsPage.number + 1}</span> of{' '}
+                <span className="font-semibold text-navy">{logsPage.totalPages}</span> ({logsPage.totalElements} records)
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={logsPage.first}
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  leftIcon={<ChevronLeft className="w-4 h-4" />}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={logsPage.last}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  rightIcon={<ChevronRight className="w-4 h-4" />}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Audit Details Modal */}
+        {selectedLog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-modal border border-border">
+              <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-primary-600" />
+                  <h3 className="font-display font-bold text-navy text-base">
+                    Audit Log Entry #{selectedLog.id}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setSelectedLog(null)}
+                  className="p-1 rounded-lg text-muted hover:text-navy hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-xl">
+                  <div>
+                    <span className="text-muted block">Action</span>
+                    <span className="font-mono font-bold text-navy mt-0.5 block">{selectedLog.action}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted block">Timestamp</span>
+                    <span className="font-mono text-slate-700 mt-0.5 block">{formatDateTime(selectedLog.createdAt)}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 border border-border rounded-xl space-y-1">
+                  <span className="text-muted block">Actor Identity</span>
+                  <p className="font-semibold text-navy">{selectedLog.actorEmail || 'System / Internal'}</p>
+                  <p className="text-muted font-mono text-[11px]">User ID: {selectedLog.userId || 'N/A'}</p>
+                  <p className="text-muted font-mono text-[11px]">IP Address: {selectedLog.ipAddress || 'Internal runtime'}</p>
+                </div>
+
+                <div>
+                  <span className="text-muted font-semibold block mb-1">Details Payload</span>
+                  <pre className="p-3 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    {selectedLog.details || 'No additional metadata provided.'}
+                  </pre>
+                </div>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-border flex justify-end">
+                <Button variant="secondary" onClick={() => setSelectedLog(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
