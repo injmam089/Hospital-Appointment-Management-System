@@ -116,6 +116,7 @@ public class SecurityConfig {
             "http://localhost:*",
             "http://127.0.0.1",
             "http://127.0.0.1:*",
+            "https://hospital-appointment-management-sys-gray.vercel.app",
             "https://*.hams.example.com"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -125,7 +126,7 @@ public class SecurityConfig {
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }
