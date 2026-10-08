@@ -1,7 +1,7 @@
 // HAMS Phase 8B - Full System Integration & Functionality Verification Suite
 // Tests every endpoint, workflow, security constraint, and business rule against live server
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'http://localhost:8055';
 
 const results = {
   passed: 0,

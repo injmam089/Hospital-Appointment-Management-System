@@ -6,6 +6,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# Build argument for API URL (defaults to port 8055)
+ARG VITE_API_URL=http://localhost:8055
+ENV VITE_API_URL=$VITE_API_URL
+
 # Copy sources and build production assets
 COPY . .
 RUN npm run build

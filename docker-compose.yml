@@ -43,7 +43,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@HAMS2024!}
       SPRING_PROFILES_ACTIVE: prod
     ports:
-      - "8080:8080"
+      - "8055:8055"
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,8 +57,12 @@ services:
     build:
       context: ./hams-frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8055}
     container_name: hams_frontend
     restart: unless-stopped
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8055}
     ports:
       - "80:80"
       - "3000:80"

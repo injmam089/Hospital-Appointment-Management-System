@@ -32,9 +32,9 @@ cd hams-backend
 mvn spring-boot:run
 ```
 
-Backend runs at: http://localhost:8080  
-Swagger UI: http://localhost:8080/swagger-ui.html  
-Health: http://localhost:8080/api/public/health
+Backend runs at: http://localhost:8055  
+Swagger UI: http://localhost:8055/swagger-ui.html  
+Health: http://localhost:8055/api/public/health
 
 ### 3. Start Frontend
 
@@ -67,7 +67,7 @@ Frontend runs at: http://localhost:5173
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_API_URL` | `http://localhost:8080` | Backend API base URL |
+| `VITE_API_URL` | `http://localhost:8055` | Backend API base URL |
 
 ---
 
