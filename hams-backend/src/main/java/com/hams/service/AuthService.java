@@ -123,6 +123,18 @@ public class AuthService {
 
         User user = userRepository.findByEmail(email).orElse(null);
 
+        if (user != null) {
+            if (!user.isActive()) {
+                auditLogService.logAction(user.getId(), "LOGIN_BLOCKED_INACTIVE", "User", user.getId(), ipAddress, "Inactive account login attempt");
+                throw HamsException.forbidden("Your account is currently disabled. Please contact the hospital administrator.");
+            }
+
+            if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+                auditLogService.logAction(user.getId(), "LOGIN_BLOCKED_LOCKED", "User", user.getId(), ipAddress, "Locked account login attempt");
+                throw HamsException.forbidden("Account is temporarily locked due to multiple failed login attempts. Please try again later.");
+            }
+        }
+
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             if (user != null) {
                 user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
@@ -140,16 +152,6 @@ public class AuthService {
                     "Failed login attempt for email: " + email
             );
             throw HamsException.badRequest("Invalid email address or password.");
-        }
-
-        if (!user.isActive()) {
-            auditLogService.logAction(user.getId(), "LOGIN_BLOCKED_INACTIVE", "User", user.getId(), ipAddress, "Inactive account login attempt");
-            throw HamsException.forbidden("Your account is currently disabled. Please contact the hospital administrator.");
-        }
-
-        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
-            auditLogService.logAction(user.getId(), "LOGIN_BLOCKED_LOCKED", "User", user.getId(), ipAddress, "Locked account login attempt");
-            throw HamsException.forbidden("Account is temporarily locked due to multiple failed login attempts. Please try again later.");
         }
 
         user.setFailedLoginAttempts(0);

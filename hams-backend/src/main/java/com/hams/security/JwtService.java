@@ -21,14 +21,30 @@ public class JwtService {
     private final long accessTokenExpiryMs;
     private final long refreshTokenExpiryMs;
 
+    private static final String DEFAULT_DEV_SECRET = "ThisIsAVeryLongAndSecureSecretKeyForHAMSJWTTokenGeneration2024MustBeAtLeast256BitsLong";
+
+    @org.springframework.beans.factory.annotation.Autowired
     public JwtService(
-        @Value("${hams.jwt.secret:ThisIsAVeryLongAndSecureSecretKeyForHAMSJWTTokenGeneration2024MustBeAtLeast256BitsLong}") String secret,
+        @Value("${hams.jwt.secret:" + DEFAULT_DEV_SECRET + "}") String secret,
         @Value("${hams.jwt.access-token-expiry-ms:900000}") long accessTokenExpiryMs,
-        @Value("${hams.jwt.refresh-token-expiry-ms:604800000}") long refreshTokenExpiryMs
+        @Value("${hams.jwt.refresh-token-expiry-ms:604800000}") long refreshTokenExpiryMs,
+        org.springframework.core.env.Environment environment
     ) {
+        if (environment != null && environment.matchesProfiles("prod")) {
+            if (DEFAULT_DEV_SECRET.equals(secret)) {
+                throw new IllegalStateException("CRITICAL SECURITY VIOLATION: Default development JWT secret cannot be used in production profile. Configure a strong JWT_SECRET environment variable.");
+            }
+        }
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("JWT secret must be at least 256 bits (32 bytes) long.");
+        }
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiryMs = accessTokenExpiryMs;
         this.refreshTokenExpiryMs = refreshTokenExpiryMs;
+    }
+
+    public JwtService(String secret, long accessTokenExpiryMs, long refreshTokenExpiryMs) {
+        this(secret, accessTokenExpiryMs, refreshTokenExpiryMs, null);
     }
 
     public String generateAccessToken(Long userId, String email, Role role) {

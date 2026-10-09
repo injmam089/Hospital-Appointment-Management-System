@@ -17,6 +17,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { extractApiError } from '../../api/client';
 import { AdminNavbar } from '../../components/layout/AdminNavbar';
+import { useDebounce } from '../../lib/useDebounce';
 import type { Doctor, Department, VerificationStatus, DoctorSchedule } from '../../types';
 
 export function AdminDoctorManagementPage() {
@@ -28,6 +29,7 @@ export function AdminDoctorManagementPage() {
 
   // Filter states
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [selectedDept, setSelectedDept] = useState<number | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<VerificationStatus | undefined>(undefined);
   const [activeFilter, setActiveFilter] = useState<boolean | undefined>(undefined);
@@ -91,7 +93,7 @@ export function AdminDoctorManagementPage() {
 
   useEffect(() => {
     fetchDoctors();
-  }, [search, selectedDept, selectedStatus, activeFilter]);
+  }, [debouncedSearch, selectedDept, selectedStatus, activeFilter]);
 
   useEffect(() => {
     if (viewModalDoctor) {
@@ -131,7 +133,7 @@ export function AdminDoctorManagementPage() {
     setIsLoading(true);
     try {
       const params: DoctorSearchParams = {
-        search: search.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
         departmentId: selectedDept,
         verificationStatus: selectedStatus,
         active: activeFilter,

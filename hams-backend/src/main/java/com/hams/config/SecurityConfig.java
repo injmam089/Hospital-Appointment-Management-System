@@ -3,6 +3,7 @@ package com.hams.config;
 import com.hams.security.CustomAccessDeniedHandler;
 import com.hams.security.JwtAuthenticationEntryPoint;
 import com.hams.security.JwtAuthenticationFilter;
+import com.hams.security.RateLimitingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,17 +45,20 @@ public class SecurityConfig {
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitingFilter rateLimitingFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final UserDetailsService userDetailsService;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            RateLimitingFilter rateLimitingFilter,
             JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
             CustomAccessDeniedHandler customAccessDeniedHandler,
             UserDetailsService userDetailsService
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.customAccessDeniedHandler = customAccessDeniedHandler;
         this.userDetailsService = userDetailsService;
@@ -87,6 +91,7 @@ public class SecurityConfig {
                 .frameOptions(frame -> frame.deny())
                 .contentTypeOptions(Customizer.withDefaults())
                 .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
                 .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost http://localhost:* http://127.0.0.1 http://127.0.0.1:* https:; frame-ancestors 'none';"))
             )
             .exceptionHandling(exceptions -> exceptions
@@ -103,6 +108,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -120,7 +126,15 @@ public class SecurityConfig {
             "https://*.hams.example.com"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

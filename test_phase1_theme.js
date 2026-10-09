@@ -126,7 +126,7 @@ async function run() {
     console.log('  [PASS] Admin authenticated successfully and navigated to /admin/dashboard');
 
     // Check stats and header load
-    await page.waitForSelector('text=Hospital Administration', { timeout: 10000 });
+    await page.waitForSelector('text=HAMS Operations', { timeout: 10000 });
     console.log('  [PASS] Admin Dashboard data and header loaded cleanly');
 
     // Verify Admin Dashboard header contains ThemeToggle

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -80,23 +80,30 @@ export function DoctorDashboard() {
     ? `Dr. ${user.firstName} ${user.lastName || ''}`.trim()
     : 'Dr. Clinician';
 
-  // Metrics calculation from live API data
-  const waitingPatientsCount = todayAppointments.filter(
-    (a) => a.status === 'CHECKED_IN' || a.status === 'IN_CONSULTATION'
-  ).length;
-
-  const completedTodayCount = todayAppointments.filter(
-    (a) => a.status === 'COMPLETED'
-  ).length;
-
   const todayStr = new Date().toISOString().split('T')[0];
-  const upcomingAppointments = allAppointments
-    .filter(
-      (a) =>
-        a.appointmentDate > todayStr &&
-        !['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(a.status)
-    )
-    .slice(0, 5);
+
+  // Metrics calculation from live API data - memoized to prevent re-filtering on state/modal updates
+  const waitingPatientsCount = useMemo(() => {
+    return todayAppointments.filter(
+      (a) => a.status === 'CHECKED_IN' || a.status === 'IN_CONSULTATION'
+    ).length;
+  }, [todayAppointments]);
+
+  const completedTodayCount = useMemo(() => {
+    return todayAppointments.filter(
+      (a) => a.status === 'COMPLETED'
+    ).length;
+  }, [todayAppointments]);
+
+  const upcomingAppointments = useMemo(() => {
+    return allAppointments
+      .filter(
+        (a) =>
+          a.appointmentDate > todayStr &&
+          !['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(a.status)
+      )
+      .slice(0, 5);
+  }, [allAppointments, todayStr]);
 
   return (
     <div className="min-h-screen bg-surface text-foreground font-sans flex flex-col">

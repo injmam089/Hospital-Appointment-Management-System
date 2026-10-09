@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, Plus, Edit, CheckCircle2,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminApi, type DepartmentPayload } from '../../api/admin';
+import { publicApi } from '../../api/public';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
@@ -82,6 +83,7 @@ export function AdminDepartmentManagementPage() {
         description: form.description?.trim() || undefined,
         icon: form.icon?.trim() || 'activity',
       });
+      publicApi.invalidateDepartmentsCache();
       toast.success('Department created successfully!');
       setCreateModalOpen(false);
       setForm({ name: '', description: '', icon: 'activity' });
@@ -107,6 +109,7 @@ export function AdminDepartmentManagementPage() {
         description: form.description?.trim() || undefined,
         icon: form.icon?.trim() || 'activity',
       });
+      publicApi.invalidateDepartmentsCache();
       toast.success('Department updated successfully!');
       setEditDept(null);
       fetchDepartments();
@@ -133,6 +136,7 @@ export function AdminDepartmentManagementPage() {
     try {
       const newStatus = !dept.active;
       await adminApi.toggleDepartmentStatus(dept.id, newStatus);
+      publicApi.invalidateDepartmentsCache();
       toast.success(`${dept.name} department ${newStatus ? 'activated' : 'deactivated'}`);
       setConfirmDialog({ isOpen: false, department: null });
       fetchDepartments();
@@ -159,17 +163,20 @@ export function AdminDepartmentManagementPage() {
     }
   };
 
-  const activeCount = departments.filter(d => d.active).length;
-  const totalDoctors = departments.reduce((acc, d) => acc + (d.doctorCount || 0), 0);
+  const activeCount = useMemo(() => departments.filter(d => d.active).length, [departments]);
+  const totalDoctors = useMemo(() => departments.reduce((acc, d) => acc + (d.doctorCount || 0), 0), [departments]);
 
-  const filteredDepartments = departments.filter(dept => {
-    const matchesSearch = dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (dept.description && dept.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'active' && dept.active) ||
-      (statusFilter === 'inactive' && !dept.active);
-    return matchesSearch && matchesStatus;
-  });
+  const filteredDepartments = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return departments.filter(dept => {
+      const matchesSearch = dept.name.toLowerCase().includes(query) ||
+        (dept.description && dept.description.toLowerCase().includes(query));
+      const matchesStatus = statusFilter === 'all' ||
+        (statusFilter === 'active' && dept.active) ||
+        (statusFilter === 'inactive' && !dept.active);
+      return matchesSearch && matchesStatus;
+    });
+  }, [departments, searchQuery, statusFilter]);
 
   return (
     <div className="min-h-screen bg-surface">

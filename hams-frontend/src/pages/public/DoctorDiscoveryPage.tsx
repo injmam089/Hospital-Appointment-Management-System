@@ -20,6 +20,7 @@ import { Button } from '../../components/ui/Button';
 import { extractApiError } from '../../api/client';
 import { formatDate, formatTime } from '../../lib/utils';
 import { useModalA11y } from '../../lib/useModalA11y';
+import { useDebounce } from '../../lib/useDebounce';
 import type { Doctor, Department, DoctorDaySlots, TimeSlotDto, AppointmentResponse } from '../../types';
 
 export function DoctorDiscoveryPage() {
@@ -33,6 +34,7 @@ export function DoctorDiscoveryPage() {
   const [totalElements, setTotalElements] = useState(0);
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
+  const debouncedSearch = useDebounce(search, 300);
   const [selectedDept, setSelectedDept] = useState<number | undefined>(
     searchParams.get('dept') ? Number(searchParams.get('dept')) : undefined
   );
@@ -70,7 +72,7 @@ export function DoctorDiscoveryPage() {
 
   useEffect(() => {
     fetchDoctors();
-  }, [search, selectedDept]);
+  }, [debouncedSearch, selectedDept]);
 
   useEffect(() => {
     if (selectedDoctor && previewDate) {
@@ -94,7 +96,7 @@ export function DoctorDiscoveryPage() {
     setIsLoading(true);
     try {
       const params: PublicDoctorSearchParams = {};
-      if (search.trim()) params.search = search.trim();
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (selectedDept !== undefined) params.departmentId = selectedDept;
 
       const res = await publicApi.getDoctors(params);

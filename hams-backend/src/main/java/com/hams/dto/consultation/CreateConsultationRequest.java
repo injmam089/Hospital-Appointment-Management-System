@@ -2,18 +2,23 @@ package com.hams.dto.consultation;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 
 public class CreateConsultationRequest {
 
+    @Size(max = 2000, message = "Symptoms description must not exceed 2000 characters")
     private String symptoms;
 
     @NotBlank(message = "Diagnosis is required")
+    @Size(max = 1000, message = "Diagnosis must not exceed 1000 characters")
     private String diagnosis;
 
+    @Size(max = 4000, message = "Clinical notes must not exceed 4000 characters")
     private String clinicalNotes;
 
+    @Size(max = 4000, message = "Treatment notes must not exceed 4000 characters")
     private String treatmentNotes;
 
     private LocalDate followUpDate;
@@ -22,6 +27,7 @@ public class CreateConsultationRequest {
     @Valid
     private List<PrescriptionItemRequest> medicines;
 
+    @Size(max = 2000, message = "General instructions must not exceed 2000 characters")
     private String generalInstructions;
 
     public CreateConsultationRequest() {
