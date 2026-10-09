@@ -5,7 +5,7 @@ import { useTheme, type ThemeMode } from '../../theme/ThemeContext';
 import { cn } from '../../lib/utils';
 
 interface ThemeToggleProps {
-  variant?: 'dropdown' | 'segmented';
+  variant?: 'dropdown' | 'segmented' | 'switch';
   className?: string;
   size?: 'sm' | 'md';
 }
@@ -20,6 +20,41 @@ export function ThemeToggle({ variant = 'dropdown', className, size = 'md' }: Th
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Switch pill variant matching the reference design
+  if (variant === 'switch') {
+    const isDark = resolvedTheme === 'dark';
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isDark}
+        aria-label={`Switch theme (currently ${resolvedTheme})`}
+        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        className={cn(
+          'relative inline-flex items-center w-[68px] h-[34px] p-0.5 rounded-full border border-border bg-surface-secondary hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+          className
+        )}
+      >
+        <span
+          className={cn(
+            'flex-1 flex items-center justify-center h-full rounded-full transition-all duration-200',
+            !isDark ? 'bg-surface text-amber-500 shadow-subtle' : 'text-muted hover:text-foreground'
+          )}
+        >
+          <Sun className="w-3.5 h-3.5" />
+        </span>
+        <span
+          className={cn(
+            'flex-1 flex items-center justify-center h-full rounded-full transition-all duration-200',
+            isDark ? 'bg-primary text-white shadow-subtle' : 'text-muted hover:text-foreground'
+          )}
+        >
+          <Moon className="w-3.5 h-3.5" />
+        </span>
+      </button>
+    );
+  }
 
   // Close dropdown on outside click or Escape key
   useEffect(() => {

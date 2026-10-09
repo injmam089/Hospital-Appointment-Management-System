@@ -8,8 +8,9 @@ import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../lib/utils';
 
 const navLinks = [
-  { label: 'Find a Doctor', href: '/doctors' },
-  { label: 'Departments', href: '/#departments' },
+  { label: 'Platform', href: '/#workspaces' },
+  { label: 'Features', href: '/#features' },
+  { label: 'Security', href: '/#security' },
   { label: 'How It Works', href: '/#how-it-works' },
 ];
 
@@ -50,30 +51,31 @@ export function PublicNavbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-200 border-b',
         isScrolled
-          ? 'bg-surface/95 backdrop-blur-md border-border shadow-subtle'
-          : 'bg-surface border-border'
+          ? 'bg-surface/95 dark:bg-[#07111F]/95 backdrop-blur-md border-border shadow-subtle'
+          : 'bg-surface/90 dark:bg-[#07111F]/90 backdrop-blur-sm border-border/80'
       )}
     >
       <nav aria-label="Public website primary navigation" className="page-container">
-        <div className="flex items-center justify-between h-16">
+        {/* ~80px Desktop Navbar Height (h-20) */}
+        <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:bg-primary-hover transition-colors shadow-sm">
-              <Stethoscope className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
+            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center group-hover:bg-primary-hover transition-colors shadow-sm shadow-primary/20">
+              <Stethoscope className="w-5 h-5 text-white" strokeWidth={2.4} />
             </div>
             <div>
-              <span className="font-display font-bold text-foreground text-lg leading-none tracking-tight">HAMS</span>
+              <span className="font-display font-bold text-foreground text-xl leading-none tracking-tight">HAMS</span>
               <span className="text-[11px] text-muted block leading-none font-medium mt-0.5">Healthcare</span>
             </div>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
+          {/* Desktop Nav Center Links */}
+          <div className="hidden md:flex items-center gap-1 lg:gap-2">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="px-3.5 py-2 text-sm font-medium text-muted hover:text-primary hover:bg-surface-secondary rounded-btn transition-colors"
+                className="px-3.5 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-surface-secondary/70 rounded-btn transition-colors"
               >
                 {link.label}
               </a>
@@ -81,8 +83,8 @@ export function PublicNavbar() {
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-2.5">
-            <ThemeToggle size="sm" />
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle variant="switch" />
             {isAuthenticated ? (
               <>
                 <Button
@@ -98,19 +100,27 @@ export function PublicNavbar() {
               </>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => navigate('/login')}>
-                  Sign in
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate('/login')}
+                  className="font-semibold text-sm px-5 py-2.5 rounded-xl border border-border"
+                >
+                  Sign In
                 </Button>
-                <Button variant="primary" onClick={() => navigate('/register')}>
-                  Get Started
+                <Button
+                  variant="primary"
+                  onClick={() => navigate('/register')}
+                  className="font-semibold text-sm px-5 py-2.5 rounded-xl shadow-sm shadow-primary/20"
+                >
+                  Create Patient Account
                 </Button>
               </>
             )}
           </div>
 
-          {/* Mobile Toggle */}
+          {/* Mobile Actions / Toggle */}
           <div className="flex items-center gap-2 md:hidden">
-            <ThemeToggle size="sm" />
+            <ThemeToggle variant="switch" />
             <button
               ref={mobileMenuButtonRef}
               className="min-w-[44px] min-h-[44px] p-2 rounded-btn text-muted hover:text-foreground hover:bg-surface-secondary transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -168,10 +178,10 @@ export function PublicNavbar() {
                 ) : (
                   <>
                     <Button variant="secondary" className="w-full" onClick={() => { navigate('/login'); setMobileOpen(false); }}>
-                      Sign in
+                      Sign In
                     </Button>
                     <Button variant="primary" className="w-full" onClick={() => { navigate('/register'); setMobileOpen(false); }}>
-                      Get Started
+                      Create Patient Account
                     </Button>
                   </>
                 )}

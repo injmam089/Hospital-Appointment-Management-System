@@ -11,6 +11,7 @@ import { NotificationBell } from '../notifications/NotificationBell';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 
 interface PatientNavbarProps {
   currentTab?: 'dashboard' | 'appointments' | 'prescriptions' | 'profile';
@@ -84,82 +85,70 @@ export function PatientNavbar({ currentTab }: PatientNavbarProps) {
   );
 
   return (
-    <header className="bg-surface border-b border-border sticky top-0 z-30 shadow-subtle">
+    <header className="bg-white/95 dark:bg-[#0b1324]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 shadow-subtle transition-colors">
       <div className="page-container px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Patient Identity & Branding */}
+        <div className="flex items-center justify-between h-16 sm:h-18">
+          {/* Left: HAMS Medical Brand */}
           <div className="flex items-center gap-3">
             <Link
               to="/patient/dashboard"
-              className="flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-1"
+              className="flex items-center gap-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-1"
             >
-              <div className="w-9 h-9 rounded-xl bg-primary-soft border border-primary/20 flex items-center justify-center text-primary font-bold shadow-subtle group-hover:bg-primary-soft/80 transition-colors">
-                <UserRound className="w-5 h-5 text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-primary-600 flex items-center justify-center text-white shadow-sm group-hover:bg-primary-700 transition-colors">
+                <Stethoscope className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
-              <div className="hidden xs:block sm:block">
-                <div className="flex items-center gap-2">
-                  <span className="font-display font-bold text-foreground text-sm sm:text-base leading-tight truncate max-w-[140px] sm:max-w-[180px]">
-                    {displayName}
-                  </span>
-                  <Badge variant="blue" dot className="hidden md:inline-flex">
-                    Patient Portal
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-muted truncate max-w-[160px] sm:max-w-[200px]">
-                  {user?.email}
-                </p>
+              <div>
+                <span className="font-display font-bold text-foreground text-base sm:text-lg leading-tight tracking-tight block">
+                  HAMS
+                </span>
+                <span className="text-[10px] text-muted font-medium block leading-none tracking-wide">
+                  Healthcare System
+                </span>
               </div>
             </Link>
           </div>
 
           {/* Center: Desktop Navigation Tabs */}
-          <nav aria-label="Patient portal primary navigation" className="hidden lg:flex items-center gap-1 bg-surface-secondary p-1 rounded-xl border border-border/60">
+          <nav aria-label="Patient portal primary navigation" className="hidden lg:flex items-center gap-1.5">
             {navItems.map((item) => {
               const isActive = activeId === item.id;
               return (
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-surface text-primary shadow-subtle border border-border/80'
-                      : 'text-muted hover:text-foreground hover:bg-surface/50'
+                      ? 'bg-primary-50 text-primary-600 border border-primary-200/60 dark:bg-primary-500/10 dark:text-primary-400 dark:border-primary-500/20 font-semibold shadow-2xs'
+                      : 'text-muted hover:text-foreground hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                   }`}
                 >
-                  <span className={isActive ? 'text-primary' : 'text-muted'}>
-                    {item.icon}
-                  </span>
                   {item.label}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Right: Actions, Notifications, Theme, User Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Right: Actions, Theme Switch, Notifications, Sign Out */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="primary"
               size="sm"
               onClick={() => navigate('/doctors')}
-              leftIcon={<Stethoscope className="w-3.5 h-3.5" />}
-              className="hidden sm:inline-flex text-xs"
+              className="hidden sm:inline-flex text-xs font-semibold px-4 py-2 rounded-xl shadow-xs"
             >
               Find a Doctor
             </Button>
 
-            <ThemeToggle size="sm" />
+            <ThemeToggle variant="switch" size="sm" />
             <NotificationBell />
 
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={handleLogout}
-              leftIcon={<LogOut className="w-4 h-4 text-muted hover:text-foreground" />}
-              className="hidden md:inline-flex text-xs text-muted hover:text-foreground"
+              className="hidden md:inline-flex items-center text-xs font-medium text-muted hover:text-foreground transition-colors px-2.5 py-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Sign out of patient session"
             >
-              <span className="hidden xl:inline">Sign out</span>
-            </Button>
+              Sign out
+            </button>
 
             {/* Mobile Hamburger Button */}
             <button
@@ -183,12 +172,21 @@ export function PatientNavbar({ currentTab }: PatientNavbarProps) {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden border-t border-border bg-surface px-4 py-3 space-y-2 overflow-hidden shadow-modal"
+            className="lg:hidden border-t border-border bg-white dark:bg-[#0b1324] px-4 py-4 space-y-3 overflow-hidden shadow-modal"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-border/60">
-              <div>
-                <p className="text-xs font-semibold text-foreground">{displayName}</p>
-                <p className="text-[11px] text-muted">{user?.email}</p>
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <div className="flex items-center gap-2.5">
+                <ProfileAvatar
+                  role="patient"
+                  name={displayName}
+                  size="compact"
+                  image="/images/patient_avatar_anime.png"
+                  animated={false}
+                />
+                <div>
+                  <p className="text-xs font-bold text-foreground">{displayName}</p>
+                  <p className="text-[11px] text-muted">{user?.email}</p>
+                </div>
               </div>
               <Badge variant="blue" dot>Patient</Badge>
             </div>
@@ -201,7 +199,7 @@ export function PatientNavbar({ currentTab }: PatientNavbarProps) {
                     key={item.id}
                     to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
                       isActive
                         ? 'bg-primary-soft text-primary font-bold'
                         : 'text-muted hover:text-foreground hover:bg-surface-secondary'
@@ -216,7 +214,7 @@ export function PatientNavbar({ currentTab }: PatientNavbarProps) {
               })}
             </nav>
 
-            <div className="pt-2 border-t border-border/60 flex flex-col gap-2">
+            <div className="pt-3 border-t border-border/60 flex flex-col gap-2">
               <Button
                 variant="primary"
                 size="sm"
