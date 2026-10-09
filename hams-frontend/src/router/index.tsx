@@ -52,66 +52,87 @@ function GuestOnly() {
   return <Outlet />;
 }
 
-function SuspenseWrapper({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingPage />}>{children}</Suspense>;
+import { motion, useReducedMotion } from 'framer-motion';
+
+function PageTransition({ children }: { children: React.ReactNode }) {
+  const shouldReduceMotion = useReducedMotion();
+
+  return (
+    <motion.div
+      initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+      className="w-full"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function SuspenseWrapper({ children, message }: { children: React.ReactNode; message?: string }) {
+  return (
+    <Suspense fallback={<LoadingPage message={message} />}>
+      <PageTransition>{children}</PageTransition>
+    </Suspense>
+  );
 }
 
 const router = createBrowserRouter([
   // Public routes
   {
     path: '/',
-    element: <SuspenseWrapper><LandingPage /></SuspenseWrapper>,
+    element: <SuspenseWrapper message="Loading healthcare portal..."><LandingPage /></SuspenseWrapper>,
   },
   {
     path: '/doctors',
-    element: <SuspenseWrapper><DoctorDiscoveryPage /></SuspenseWrapper>,
+    element: <SuspenseWrapper message="Loading medical directory..."><DoctorDiscoveryPage /></SuspenseWrapper>,
   },
   // Auth-only for guests
   {
     element: <GuestOnly />,
     children: [
-      { path: '/login',    element: <SuspenseWrapper><LoginPage /></SuspenseWrapper> },
-      { path: '/register', element: <SuspenseWrapper><RegisterPage /></SuspenseWrapper> },
+      { path: '/login',    element: <SuspenseWrapper message="Connecting to secure login..."><LoginPage /></SuspenseWrapper> },
+      { path: '/register', element: <SuspenseWrapper message="Loading patient registration..."><RegisterPage /></SuspenseWrapper> },
     ],
   },
   // Authenticated common routes (all roles)
   {
     element: <RequireAuth />,
     children: [
-      { path: '/notifications', element: <SuspenseWrapper><NotificationCenterPage /></SuspenseWrapper> },
+      { path: '/notifications', element: <SuspenseWrapper message="Loading notifications..."><NotificationCenterPage /></SuspenseWrapper> },
     ],
   },
   // Patient routes
   {
     element: <RequireAuth allowedRoles={['PATIENT']} />,
     children: [
-      { path: '/patient/dashboard',     element: <SuspenseWrapper><PatientDashboard /></SuspenseWrapper> },
-      { path: '/patient/appointments',  element: <SuspenseWrapper><PatientAppointmentsPage /></SuspenseWrapper> },
-      { path: '/patient/prescriptions', element: <SuspenseWrapper><PatientPrescriptionsPage /></SuspenseWrapper> },
-      { path: '/patient/profile',       element: <SuspenseWrapper><PatientProfilePage /></SuspenseWrapper> },
+      { path: '/patient/dashboard',     element: <SuspenseWrapper message="Loading patient dashboard..."><PatientDashboard /></SuspenseWrapper> },
+      { path: '/patient/appointments',  element: <SuspenseWrapper message="Loading your appointments..."><PatientAppointmentsPage /></SuspenseWrapper> },
+      { path: '/patient/prescriptions', element: <SuspenseWrapper message="Loading prescriptions..."><PatientPrescriptionsPage /></SuspenseWrapper> },
+      { path: '/patient/profile',       element: <SuspenseWrapper message="Loading health profile..."><PatientProfilePage /></SuspenseWrapper> },
     ],
   },
   // Doctor routes
   {
     element: <RequireAuth allowedRoles={['DOCTOR']} />,
     children: [
-      { path: '/doctor/dashboard',    element: <SuspenseWrapper><DoctorDashboard /></SuspenseWrapper> },
-      { path: '/doctor/appointments', element: <SuspenseWrapper><DoctorAppointmentsPage /></SuspenseWrapper> },
-      { path: '/doctor/profile',      element: <SuspenseWrapper><DoctorProfilePage /></SuspenseWrapper> },
-      { path: '/doctor/schedule',     element: <SuspenseWrapper><DoctorSchedulePage /></SuspenseWrapper> },
+      { path: '/doctor/dashboard',    element: <SuspenseWrapper message="Loading doctor dashboard..."><DoctorDashboard /></SuspenseWrapper> },
+      { path: '/doctor/appointments', element: <SuspenseWrapper message="Loading consultation queue..."><DoctorAppointmentsPage /></SuspenseWrapper> },
+      { path: '/doctor/profile',      element: <SuspenseWrapper message="Loading practitioner profile..."><DoctorProfilePage /></SuspenseWrapper> },
+      { path: '/doctor/schedule',     element: <SuspenseWrapper message="Loading weekly schedule..."><DoctorSchedulePage /></SuspenseWrapper> },
     ],
   },
   // Admin routes
   {
     element: <RequireAuth allowedRoles={['ADMIN']} />,
     children: [
-      { path: '/admin/dashboard',    element: <SuspenseWrapper><AdminDashboard /></SuspenseWrapper> },
-      { path: '/admin/doctors',      element: <SuspenseWrapper><AdminDoctorManagement /></SuspenseWrapper> },
-      { path: '/admin/departments',  element: <SuspenseWrapper><AdminDepartmentManagement /></SuspenseWrapper> },
-      { path: '/admin/users',        element: <SuspenseWrapper><AdminUsersPage /></SuspenseWrapper> },
-      { path: '/admin/appointments', element: <SuspenseWrapper><AdminAppointmentsPage /></SuspenseWrapper> },
-      { path: '/admin/reports',      element: <SuspenseWrapper><AdminReportsPage /></SuspenseWrapper> },
-      { path: '/admin/audit-logs',   element: <SuspenseWrapper><AdminAuditLogsPage /></SuspenseWrapper> },
+      { path: '/admin/dashboard',    element: <SuspenseWrapper message="Loading administration console..."><AdminDashboard /></SuspenseWrapper> },
+      { path: '/admin/doctors',      element: <SuspenseWrapper message="Loading doctor records..."><AdminDoctorManagement /></SuspenseWrapper> },
+      { path: '/admin/departments',  element: <SuspenseWrapper message="Loading hospital departments..."><AdminDepartmentManagement /></SuspenseWrapper> },
+      { path: '/admin/users',        element: <SuspenseWrapper message="Loading user management..."><AdminUsersPage /></SuspenseWrapper> },
+      { path: '/admin/appointments', element: <SuspenseWrapper message="Loading appointment oversight..."><AdminAppointmentsPage /></SuspenseWrapper> },
+      { path: '/admin/reports',      element: <SuspenseWrapper message="Loading clinical analytics..."><AdminReportsPage /></SuspenseWrapper> },
+      { path: '/admin/audit-logs',   element: <SuspenseWrapper message="Loading audit records..."><AdminAuditLogsPage /></SuspenseWrapper> },
     ],
   },
   // Catch-all

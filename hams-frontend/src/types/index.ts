@@ -297,6 +297,8 @@ export interface ConsultationResponse {
   diagnosis: string;
   clinicalNotes?: string;
   treatmentNotes?: string;
+  notes?: string;
+  advice?: string;
   followUpDate?: string;
   prescription?: PrescriptionResponse | null;
   createdAt: string;

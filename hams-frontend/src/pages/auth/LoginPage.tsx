@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import { extractApiError } from '../../api/client';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -58,11 +59,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] text-[#0F172A] flex font-sans">
+    <div className="min-h-screen bg-background text-foreground flex font-sans relative">
+      <div className="absolute top-4 right-4 z-30">
+        <ThemeToggle size="sm" />
+      </div>
+
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#0B1224] text-white flex-col justify-between p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-[#0B1224] dark:bg-[#07111F] text-white flex-col justify-between p-12 border-r border-slate-800/80">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#2563EB] rounded-xl flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-sm">
             <Stethoscope className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
           </div>
           <div>
@@ -78,7 +83,7 @@ export function LoginPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-800/80 border border-slate-700/80 rounded-full mb-6">
-              <span className="w-2 h-2 rounded-full bg-[#2563EB]" />
+              <span className="w-2 h-2 rounded-full bg-primary" />
               <span className="text-xs font-medium text-slate-300">Secure Access Gateway</span>
             </div>
 
@@ -97,7 +102,7 @@ export function LoginPage() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Tamper-evident clinical audit trails</span>
+                <span>Secure administrative audit trails</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -113,7 +118,7 @@ export function LoginPage() {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
         <motion.div
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 14 }}
@@ -122,14 +127,14 @@ export function LoginPage() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-8 h-8 bg-[#2563EB] rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
               <Stethoscope className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
             </div>
-            <span className="font-display font-bold text-[#0F172A] text-lg">HAMS Healthcare</span>
+            <span className="font-display font-bold text-foreground text-lg">HAMS Healthcare</span>
           </div>
 
-          <h1 className="font-display text-2xl font-bold text-[#0F172A] mb-1 tracking-tight">Welcome back</h1>
-          <p className="text-sm text-[#64748B] mb-8">Sign in to your clinical or patient account</p>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-1 tracking-tight">Welcome back</h1>
+          <p className="text-sm text-muted mb-8">Sign in to your clinical or patient account</p>
 
           {error && (
             <motion.div
@@ -186,42 +191,42 @@ export function LoginPage() {
           </form>
 
           {/* Quick Demo Accounts Helper */}
-          <div className="mt-8 p-4 bg-white rounded-2xl border border-[#E2E8F0] shadow-subtle">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0F172A] mb-2.5">
-              <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
+          <div className="mt-8 p-4 bg-surface rounded-2xl border border-border shadow-subtle">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-2.5">
+              <ShieldCheck className="w-4 h-4 text-primary" />
               <span>Quick Demo Sign-In</span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => handleQuickFill('admin@hams.local', 'Admin@HAMS2024!')}
-                className="p-2 text-left bg-[#F7F9FC] rounded-xl border border-[#E2E8F0] hover:border-blue-400 hover:bg-blue-50/50 transition-all"
+                className="p-2 text-left bg-surface-secondary rounded-xl border border-border hover:border-primary/50 transition-all"
               >
-                <div className="font-semibold text-[#2563EB]">Admin</div>
-                <div className="text-[10px] text-[#64748B] truncate">admin@hams.local</div>
+                <div className="font-semibold text-primary">Admin</div>
+                <div className="text-[10px] text-muted truncate">admin@hams.local</div>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('doctor.demo1@hams.local', 'Doctor@HAMS2024!')}
-                className="p-2 text-left bg-[#F7F9FC] rounded-xl border border-[#E2E8F0] hover:border-emerald-400 hover:bg-emerald-50/50 transition-all"
+                className="p-2 text-left bg-surface-secondary rounded-xl border border-border hover:border-emerald-500/50 transition-all"
               >
-                <div className="font-semibold text-emerald-700">Doctor</div>
-                <div className="text-[10px] text-[#64748B] truncate">doctor.demo1</div>
+                <div className="font-semibold text-emerald-600 dark:text-emerald-400">Doctor</div>
+                <div className="text-[10px] text-muted truncate">doctor.demo1</div>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('patient.demo1@example.com', 'Patient@HAMS2024!')}
-                className="p-2 text-left bg-[#F7F9FC] rounded-xl border border-[#E2E8F0] hover:border-blue-400 hover:bg-blue-50/50 transition-all"
+                className="p-2 text-left bg-surface-secondary rounded-xl border border-border hover:border-primary/50 transition-all"
               >
-                <div className="font-semibold text-[#2563EB]">Patient</div>
-                <div className="text-[10px] text-[#64748B] truncate">patient.demo1</div>
+                <div className="font-semibold text-primary">Patient</div>
+                <div className="text-[10px] text-muted truncate">patient.demo1</div>
               </button>
             </div>
           </div>
 
-          <p className="mt-6 text-center text-sm text-[#64748B]">
+          <p className="mt-6 text-center text-sm text-muted">
             New patient?{' '}
-            <Link to="/register" className="text-[#2563EB] hover:text-[#1D4ED8] font-semibold">
+            <Link to="/register" className="text-primary hover:text-primary-hover font-semibold">
               Create an account
             </Link>
           </p>

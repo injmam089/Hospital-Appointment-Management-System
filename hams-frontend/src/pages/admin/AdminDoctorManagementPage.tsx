@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Search, Plus, CheckCircle2, XCircle, Ban, RefreshCw,
+  Search, Plus, CheckCircle2, XCircle, Ban, RefreshCw,
   Stethoscope, Edit, Eye, AlertTriangle, X, CalendarDays, Coffee
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -17,10 +16,10 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { extractApiError } from '../../api/client';
+import { AdminNavbar } from '../../components/layout/AdminNavbar';
 import type { Doctor, Department, VerificationStatus, DoctorSchedule } from '../../types';
 
 export function AdminDoctorManagementPage() {
-
   // Data states
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -99,20 +98,32 @@ export function AdminDoctorManagementPage() {
       scheduleApi.getDoctorSchedule(viewModalDoctor.id)
         .then(setDocSchedule)
         .catch(() => setDocSchedule(null));
-    } else {
-      setDocSchedule(null);
     }
   }, [viewModalDoctor]);
+
+  // Escape key handler for open modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (confirmDialog.isOpen) setConfirmDialog({ isOpen: false, type: 'verify', doctor: null });
+        else if (createModalOpen) setCreateModalOpen(false);
+        else if (editModalDoctor) setEditModalDoctor(null);
+        else if (viewModalDoctor) setViewModalDoctor(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [confirmDialog.isOpen, createModalOpen, editModalDoctor, viewModalDoctor]);
 
   const fetchDepartments = async () => {
     try {
       const data = await adminApi.getDepartments();
       setDepartments(data);
-      if (data.length > 0 && !createForm.departmentId) {
+      if (data.length > 0 && createForm.departmentId === 0) {
         setCreateForm(prev => ({ ...prev, departmentId: data[0].id }));
       }
-    } catch (err) {
-      toast.error('Failed to load departments');
+    } catch {
+      // Non-blocking
     }
   };
 
@@ -127,53 +138,13 @@ export function AdminDoctorManagementPage() {
         page: 0,
         size: 50,
       };
-      const res = await adminApi.getDoctors(params);
-      setDoctors(res.content);
-      setTotalElements(res.totalElements);
+      const response = await adminApi.getDoctors(params);
+      setDoctors(response.content);
+      setTotalElements(response.totalElements);
     } catch (err) {
       toast.error(extractApiError(err));
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const openConfirm = (type: 'verify' | 'reject' | 'deactivate' | 'activate', doctor: Doctor) => {
-    setConfirmDialog({
-      isOpen: true,
-      type,
-      doctor,
-    });
-  };
-
-  const handleExecuteAction = async () => {
-    if (!confirmDialog.doctor) return;
-    setIsSubmitting(true);
-    const doctorId = confirmDialog.doctor.id;
-    try {
-      switch (confirmDialog.type) {
-        case 'verify':
-          await adminApi.verifyDoctor(doctorId);
-          toast.success(`Dr. ${confirmDialog.doctor.fullName} verified successfully`);
-          break;
-        case 'reject':
-          await adminApi.rejectDoctor(doctorId);
-          toast.success(`Dr. ${confirmDialog.doctor.fullName} verification marked rejected`);
-          break;
-        case 'deactivate':
-          await adminApi.deactivateDoctor(doctorId);
-          toast.success(`Dr. ${confirmDialog.doctor.fullName} has been deactivated`);
-          break;
-        case 'activate':
-          await adminApi.activateDoctor(doctorId);
-          toast.success(`Dr. ${confirmDialog.doctor.fullName} account reactivated`);
-          break;
-      }
-      setConfirmDialog({ isOpen: false, type: 'verify', doctor: null });
-      fetchDoctors();
-    } catch (err) {
-      toast.error(extractApiError(err));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -185,9 +156,20 @@ export function AdminDoctorManagementPage() {
     }
     setIsSubmitting(true);
     try {
-      await adminApi.createDoctor(createForm);
-      toast.success('Doctor account and profile created successfully!');
+      await adminApi.createDoctor({
+        ...createForm,
+        email: createForm.email.trim(),
+        firstName: createForm.firstName.trim(),
+        lastName: createForm.lastName.trim(),
+        specialization: createForm.specialization.trim(),
+        qualification: createForm.qualification?.trim() || undefined,
+        bio: createForm.bio?.trim() || undefined,
+        phone: createForm.phone?.trim() || undefined,
+        registrationNumber: createForm.registrationNumber?.trim() || undefined,
+      });
+      toast.success('Doctor account created successfully!');
       setCreateModalOpen(false);
+      fetchDoctors();
       setCreateForm({
         email: '',
         password: '',
@@ -203,7 +185,6 @@ export function AdminDoctorManagementPage() {
         registrationNumber: '',
         verified: false,
       });
-      fetchDoctors();
     } catch (err) {
       toast.error(extractApiError(err));
     } finally {
@@ -234,9 +215,54 @@ export function AdminDoctorManagementPage() {
     if (!editModalDoctor) return;
     setIsSubmitting(true);
     try {
-      await adminApi.updateDoctor(editModalDoctor.id, editForm);
-      toast.success('Doctor details updated successfully');
+      await adminApi.updateDoctor(editModalDoctor.id, {
+        ...editForm,
+        firstName: editForm.firstName.trim(),
+        lastName: editForm.lastName.trim(),
+        specialization: editForm.specialization.trim(),
+        qualification: editForm.qualification?.trim() || undefined,
+        bio: editForm.bio?.trim() || undefined,
+        phone: editForm.phone?.trim() || undefined,
+        registrationNumber: editForm.registrationNumber?.trim() || undefined,
+      });
+      toast.success('Doctor profile updated successfully!');
       setEditModalDoctor(null);
+      fetchDoctors();
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openConfirm = (type: 'verify' | 'reject' | 'deactivate' | 'activate', doctor: Doctor) => {
+    setConfirmDialog({ isOpen: true, type, doctor });
+  };
+
+  const handleExecuteAction = async () => {
+    if (!confirmDialog.doctor) return;
+    const docId = confirmDialog.doctor.id;
+    setIsSubmitting(true);
+    try {
+      switch (confirmDialog.type) {
+        case 'verify':
+          await adminApi.verifyDoctor(docId);
+          toast.success(`Dr. ${confirmDialog.doctor.fullName} verified and approved!`);
+          break;
+        case 'reject':
+          await adminApi.rejectDoctor(docId);
+          toast.success(`Dr. ${confirmDialog.doctor.fullName} credentials rejected.`);
+          break;
+        case 'deactivate':
+          await adminApi.deactivateDoctor(docId);
+          toast.success(`Dr. ${confirmDialog.doctor.fullName} deactivated.`);
+          break;
+        case 'activate':
+          await adminApi.activateDoctor(docId);
+          toast.success(`Dr. ${confirmDialog.doctor.fullName} reactivated.`);
+          break;
+      }
+      setConfirmDialog({ isOpen: false, type: 'verify', doctor: null });
       fetchDoctors();
     } catch (err) {
       toast.error(extractApiError(err));
@@ -259,26 +285,26 @@ export function AdminDoctorManagementPage() {
     }
   };
 
+  const isFiltered = search.trim() !== '' || selectedDept !== undefined || selectedStatus !== undefined || activeFilter !== undefined;
+
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Header */}
-      <header className="bg-white border-b border-border sticky top-0 z-10 shadow-sm">
-        <div className="page-container py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/admin/dashboard"
-              className="p-2 rounded-xl text-muted hover:text-navy hover:bg-surface transition-colors"
-              title="Return to Admin Dashboard"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-display font-bold text-navy text-xl">Doctor Management</h1>
-                <Badge variant="blue">{totalElements} Staff Members</Badge>
-              </div>
-              <p className="text-xs text-muted">Verify credentials, onboard practitioners, and manage medical staff</p>
+    <div className="min-h-screen bg-surface text-foreground font-sans flex flex-col">
+      <AdminNavbar currentTab="doctors" />
+
+      <main className="page-container py-8 space-y-6 max-w-7xl flex-1">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-display font-bold text-foreground text-2xl flex items-center gap-2">
+                <Stethoscope className="w-6 h-6 text-primary" />
+                Doctor Management & Credential Verification
+              </h1>
+              <Badge variant="blue">{totalElements} Staff Members</Badge>
             </div>
+            <p className="text-xs sm:text-sm text-muted mt-1">
+              Verify practitioner medical licenses, onboard clinical practitioners, and manage medical privileges
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -291,30 +317,30 @@ export function AdminDoctorManagementPage() {
             </Button>
           </div>
         </div>
-      </header>
 
-      <main className="page-container py-8 space-y-6">
         {/* Filter Bar */}
-        <div className="card p-4 sm:p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-4 sm:p-5 bg-card border border-border shadow-subtle">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
             {/* Search */}
-            <div className="relative">
+            <div className="lg:col-span-4 relative">
               <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search by doctor or specialty..."
+                aria-label="Search by doctor or specialty"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="input-field pl-10"
+                className="input-field pl-10 text-xs sm:text-sm"
               />
             </div>
 
             {/* Department */}
-            <div>
+            <div className="lg:col-span-3">
               <select
                 value={selectedDept !== undefined ? selectedDept : ''}
                 onChange={e => setSelectedDept(e.target.value ? Number(e.target.value) : undefined)}
-                className="input-field"
+                className="input-field text-xs sm:text-sm"
+                aria-label="Filter by Department"
               >
                 <option value="">All Departments</option>
                 {departments.map(dept => (
@@ -326,11 +352,12 @@ export function AdminDoctorManagementPage() {
             </div>
 
             {/* Verification Status */}
-            <div>
+            <div className="lg:col-span-3">
               <select
                 value={selectedStatus !== undefined ? selectedStatus : ''}
                 onChange={e => setSelectedStatus((e.target.value as VerificationStatus) || undefined)}
-                className="input-field"
+                className="input-field text-xs sm:text-sm"
+                aria-label="Filter by Verification Status"
               >
                 <option value="">All Verification States</option>
                 <option value="APPROVED">APPROVED (Verified)</option>
@@ -341,34 +368,51 @@ export function AdminDoctorManagementPage() {
             </div>
 
             {/* Active Status */}
-            <div>
+            <div className="lg:col-span-2 flex items-center gap-2">
               <select
                 value={activeFilter !== undefined ? String(activeFilter) : ''}
                 onChange={e => {
                   if (e.target.value === '') setActiveFilter(undefined);
                   else setActiveFilter(e.target.value === 'true');
                 }}
-                className="input-field"
+                className="input-field text-xs sm:text-sm flex-1"
+                aria-label="Filter by Active Account Status"
               >
-                <option value="">All Account States</option>
+                <option value="">All States</option>
                 <option value="true">Active Staff</option>
-                <option value="false">Deactivated Staff</option>
+                <option value="false">Deactivated</option>
               </select>
+              {isFiltered && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setSearch('');
+                    setSelectedDept(undefined);
+                    setSelectedStatus(undefined);
+                    setActiveFilter(undefined);
+                  }}
+                  className="p-2 text-muted hover:text-foreground"
+                  title="Clear all filters"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Doctors Table */}
-        <div className="card overflow-hidden">
+        <div className="card overflow-hidden bg-card border border-border shadow-subtle">
           {isLoading ? (
             <div className="p-12 text-center">
-              <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm text-muted">Loading medical practitioners...</p>
             </div>
           ) : doctors.length === 0 ? (
             <div className="p-12 text-center">
               <Stethoscope className="w-12 h-12 text-muted mx-auto mb-3" />
-              <h3 className="font-semibold text-navy text-base mb-1">No doctors found</h3>
+              <h3 className="font-semibold text-foreground text-base mb-1">No doctors found</h3>
               <p className="text-sm text-muted mb-4">No doctor records matched your filter criteria.</p>
               <Button
                 variant="secondary"
@@ -386,27 +430,27 @@ export function AdminDoctorManagementPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-surface border-b border-border text-xs uppercase font-semibold text-muted tracking-wider">
+                <thead className="bg-surface-secondary/70 border-b border-border text-xs uppercase font-semibold text-muted tracking-wider">
                   <tr>
-                    <th className="py-3.5 px-4">Doctor</th>
-                    <th className="py-3.5 px-4">Department & Specialty</th>
-                    <th className="py-3.5 px-4">Credentials & Fee</th>
-                    <th className="py-3.5 px-4">Verification</th>
-                    <th className="py-3.5 px-4">Account</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                    <th scope="col" className="py-3.5 px-4">Doctor</th>
+                    <th scope="col" className="py-3.5 px-4">Department & Specialty</th>
+                    <th scope="col" className="py-3.5 px-4">Credentials & Fee</th>
+                    <th scope="col" className="py-3.5 px-4">Verification</th>
+                    <th scope="col" className="py-3.5 px-4">Account</th>
+                    <th scope="col" className="py-3.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/60">
                   {doctors.map(doctor => (
-                    <tr key={doctor.id} className="hover:bg-surface/50 transition-colors">
+                    <tr key={doctor.id} className="hover:bg-surface-secondary/40 transition-colors">
                       {/* Doctor Info */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-700 font-bold flex-shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold flex-shrink-0">
                             {doctor.firstName.charAt(0)}{doctor.lastName.charAt(0)}
                           </div>
                           <div>
-                            <div className="font-semibold text-navy flex items-center gap-1.5">
+                            <div className="font-semibold text-foreground flex items-center gap-1.5">
                               Dr. {doctor.fullName}
                               {doctor.verified && (
                                 <CheckCircle2 className="w-4 h-4 text-emerald-500 inline" />
@@ -422,17 +466,17 @@ export function AdminDoctorManagementPage() {
 
                       {/* Department & Specialty */}
                       <td className="py-4 px-4">
-                        <div className="font-medium text-navy">{doctor.departmentName || 'General'}</div>
-                        <div className="text-xs text-primary-600 font-medium">{doctor.specialization}</div>
+                        <div className="font-medium text-foreground">{doctor.departmentName || 'General'}</div>
+                        <div className="text-xs text-primary font-medium">{doctor.specialization}</div>
                       </td>
 
                       {/* Credentials */}
                       <td className="py-4 px-4">
-                        <div className="text-xs text-navy font-medium">
+                        <div className="text-xs text-foreground font-medium">
                           {doctor.qualification || 'MBBS'}
                           {doctor.experienceYears ? ` (${doctor.experienceYears}y exp)` : ''}
                         </div>
-                        <div className="text-xs text-emerald-600 font-semibold">
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                           ₹{doctor.consultationFee || 0} / visit
                         </div>
                       </td>
@@ -445,9 +489,9 @@ export function AdminDoctorManagementPage() {
                       {/* Account Active */}
                       <td className="py-4 px-4">
                         {doctor.active ? (
-                          <span className="badge badge-green">Active</span>
+                          <Badge variant="green" dot>Active</Badge>
                         ) : (
-                          <span className="badge badge-red">Deactivated</span>
+                          <Badge variant="red" dot>Deactivated</Badge>
                         )}
                       </td>
 
@@ -456,15 +500,17 @@ export function AdminDoctorManagementPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => setViewModalDoctor(doctor)}
-                            className="p-1.5 rounded-lg text-muted hover:text-navy hover:bg-surface transition-colors"
+                            className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface-secondary transition-colors"
                             title="View Doctor Details"
+                            aria-label={`View details for Dr. ${doctor.fullName}`}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => openEditModal(doctor)}
-                            className="p-1.5 rounded-lg text-muted hover:text-primary-600 hover:bg-surface transition-colors"
+                            className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-surface-secondary transition-colors"
                             title="Edit Doctor Information"
+                            aria-label={`Edit Dr. ${doctor.fullName}`}
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -473,8 +519,9 @@ export function AdminDoctorManagementPage() {
                           {doctor.verificationStatus !== 'APPROVED' && (
                             <button
                               onClick={() => openConfirm('verify', doctor)}
-                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                               title="Verify & Approve Doctor"
+                              aria-label={`Verify Dr. ${doctor.fullName}`}
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </button>
@@ -484,8 +531,9 @@ export function AdminDoctorManagementPage() {
                           {doctor.verificationStatus !== 'REJECTED' && (
                             <button
                               onClick={() => openConfirm('reject', doctor)}
-                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+                              className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
                               title="Reject Credentials"
+                              aria-label={`Reject Dr. ${doctor.fullName}`}
                             >
                               <XCircle className="w-4 h-4" />
                             </button>
@@ -495,16 +543,18 @@ export function AdminDoctorManagementPage() {
                           {doctor.active ? (
                             <button
                               onClick={() => openConfirm('deactivate', doctor)}
-                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                               title="Deactivate Doctor"
+                              aria-label={`Deactivate Dr. ${doctor.fullName}`}
                             >
                               <Ban className="w-4 h-4" />
                             </button>
                           ) : (
                             <button
                               onClick={() => openConfirm('activate', doctor)}
-                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                               title="Activate Doctor"
+                              aria-label={`Activate Dr. ${doctor.fullName}`}
                             >
                               <RefreshCw className="w-4 h-4" />
                             </button>
@@ -523,36 +573,41 @@ export function AdminDoctorManagementPage() {
       {/* CONFIRMATION DIALOG MODAL */}
       <AnimatePresence>
         {confirmDialog.isOpen && confirmDialog.doctor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40 backdrop-blur-sm">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-xs"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-doctor-action-heading"
+          >
             <motion.div
-              className="card bg-white p-6 max-w-md w-full shadow-modal"
+              className="card bg-card border border-border p-6 max-w-md w-full shadow-modal"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
             >
               <div className="flex items-center gap-3 mb-4">
                 {confirmDialog.type === 'verify' && (
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                 )}
                 {confirmDialog.type === 'reject' && (
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20">
                     <AlertTriangle className="w-6 h-6" />
                   </div>
                 )}
                 {confirmDialog.type === 'deactivate' && (
-                  <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20">
                     <Ban className="w-6 h-6" />
                   </div>
                 )}
                 {confirmDialog.type === 'activate' && (
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
                     <RefreshCw className="w-6 h-6" />
                   </div>
                 )}
                 <div>
-                  <h3 className="font-display font-bold text-navy text-lg">
+                  <h3 id="confirm-doctor-action-heading" className="font-display font-bold text-foreground text-lg">
                     {confirmDialog.type === 'verify' && 'Approve & Verify Doctor'}
                     {confirmDialog.type === 'reject' && 'Reject Doctor Credentials'}
                     {confirmDialog.type === 'deactivate' && 'Deactivate Doctor Account'}
@@ -562,7 +617,7 @@ export function AdminDoctorManagementPage() {
                 </div>
               </div>
 
-              <p className="text-sm text-navy/80 mb-6 leading-relaxed">
+              <p className="text-sm text-foreground/80 mb-6 leading-relaxed">
                 {confirmDialog.type === 'verify' && (
                   <>Are you sure you want to approve <strong>Dr. {confirmDialog.doctor.fullName}</strong>? This doctor will receive verified badge status and appear in public listings.</>
                 )}
@@ -601,21 +656,27 @@ export function AdminDoctorManagementPage() {
       {/* CREATE DOCTOR MODAL */}
       <AnimatePresence>
         {createModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40 backdrop-blur-sm overflow-y-auto">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-xs overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-doctor-heading"
+          >
             <motion.div
-              className="card bg-white p-6 sm:p-8 max-w-2xl w-full my-8 shadow-modal"
+              className="card bg-card border border-border p-6 sm:p-8 max-w-2xl w-full my-8 shadow-modal"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
             >
               <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
                 <div>
-                  <h3 className="font-display font-bold text-navy text-xl">Onboard New Doctor</h3>
+                  <h3 id="create-doctor-heading" className="font-display font-bold text-foreground text-xl">Onboard New Doctor</h3>
                   <p className="text-xs text-muted">Create doctor user credentials and medical staff profile</p>
                 </div>
                 <button
                   onClick={() => setCreateModalOpen(false)}
-                  className="p-1 rounded-lg text-muted hover:text-navy hover:bg-surface"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-secondary"
+                  aria-label="Close dialog"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -738,9 +799,9 @@ export function AdminDoctorManagementPage() {
                     id="verifiedCheck"
                     checked={createForm.verified}
                     onChange={e => setCreateForm({ ...createForm, verified: e.target.checked })}
-                    className="rounded border-border text-primary-600 focus:ring-primary-500"
+                    className="rounded border-border text-primary focus:ring-primary"
                   />
-                  <label htmlFor="verifiedCheck" className="text-sm font-medium text-navy cursor-pointer">
+                  <label htmlFor="verifiedCheck" className="text-sm font-medium text-foreground cursor-pointer">
                     Approve and verify credentials immediately (APPROVED status)
                   </label>
                 </div>
@@ -771,23 +832,29 @@ export function AdminDoctorManagementPage() {
       {/* EDIT DOCTOR MODAL */}
       <AnimatePresence>
         {editModalDoctor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40 backdrop-blur-sm overflow-y-auto">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-xs overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-doctor-heading"
+          >
             <motion.div
-              className="card bg-white p-6 sm:p-8 max-w-2xl w-full my-8 shadow-modal"
+              className="card bg-card border border-border p-6 sm:p-8 max-w-2xl w-full my-8 shadow-modal"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
             >
               <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
                 <div>
-                  <h3 className="font-display font-bold text-navy text-xl">
+                  <h3 id="edit-doctor-heading" className="font-display font-bold text-foreground text-xl">
                     Edit Dr. {editModalDoctor.fullName}
                   </h3>
                   <p className="text-xs text-muted">Update administrative records and credentials</p>
                 </div>
                 <button
                   onClick={() => setEditModalDoctor(null)}
-                  className="p-1 rounded-lg text-muted hover:text-navy hover:bg-surface"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-secondary"
+                  aria-label="Close dialog"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -928,26 +995,32 @@ export function AdminDoctorManagementPage() {
       {/* VIEW DOCTOR MODAL */}
       <AnimatePresence>
         {viewModalDoctor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40 backdrop-blur-sm">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-xs"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="view-doctor-heading"
+          >
             <motion.div
-              className="card bg-white p-6 sm:p-8 max-w-lg w-full shadow-modal"
+              className="card bg-card border border-border p-6 sm:p-8 max-w-lg w-full shadow-modal"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
             >
               <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-primary-100 text-primary-700 font-bold flex items-center justify-center text-lg">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold flex items-center justify-center text-lg">
                     {viewModalDoctor.firstName.charAt(0)}{viewModalDoctor.lastName.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-navy text-lg">Dr. {viewModalDoctor.fullName}</h3>
-                    <p className="text-xs text-primary-600 font-medium">{viewModalDoctor.specialization}</p>
+                    <h3 id="view-doctor-heading" className="font-display font-bold text-foreground text-lg">Dr. {viewModalDoctor.fullName}</h3>
+                    <p className="text-xs text-primary font-medium">{viewModalDoctor.specialization}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setViewModalDoctor(null)}
-                  className="p-1 rounded-lg text-muted hover:text-navy hover:bg-surface"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-secondary"
+                  aria-label="Close dialog"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -956,7 +1029,7 @@ export function AdminDoctorManagementPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted">Department</span>
-                  <span className="font-semibold text-navy">{viewModalDoctor.departmentName || 'General'}</span>
+                  <span className="font-semibold text-foreground">{viewModalDoctor.departmentName || 'General'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted">Verification Status</span>
@@ -964,38 +1037,38 @@ export function AdminDoctorManagementPage() {
                 </div>
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted">Account Status</span>
-                  <span>{viewModalDoctor.active ? <Badge variant="green">Active</Badge> : <Badge variant="red">Inactive</Badge>}</span>
+                  <span>{viewModalDoctor.active ? <Badge variant="green" dot>Active</Badge> : <Badge variant="red" dot>Inactive</Badge>}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted">Email</span>
-                  <span className="font-mono text-xs text-navy">{viewModalDoctor.email}</span>
+                  <span className="font-mono text-xs text-foreground">{viewModalDoctor.email}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted">Phone</span>
-                  <span className="text-navy">{viewModalDoctor.phone || 'N/A'}</span>
+                  <span className="text-foreground">{viewModalDoctor.phone || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted">Medical License</span>
-                  <span className="font-mono text-xs text-navy">{viewModalDoctor.registrationNumber || 'Pending'}</span>
+                  <span className="font-mono text-xs text-foreground">{viewModalDoctor.registrationNumber || 'Pending'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-muted">Consultation Fee</span>
-                  <span className="font-bold text-emerald-600">₹{viewModalDoctor.consultationFee || 0}</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{viewModalDoctor.consultationFee || 0}</span>
                 </div>
                 <div className="pt-2">
                   <span className="text-xs text-muted block mb-1">Clinical Biography</span>
-                  <p className="text-xs text-navy/80 bg-surface p-3 rounded-xl border border-border leading-relaxed">
+                  <p className="text-xs text-foreground/80 bg-surface-secondary p-3 rounded-xl border border-border leading-relaxed whitespace-pre-line">
                     {viewModalDoctor.bio || 'No clinical biography on file.'}
                   </p>
                 </div>
 
                 {docSchedule && (
                   <div className="pt-2">
-                    <span className="text-xs font-semibold text-navy flex items-center gap-1.5 mb-2">
-                      <CalendarDays className="w-3.5 h-3.5 text-primary-600" />
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-2">
+                      <CalendarDays className="w-3.5 h-3.5 text-primary" />
                       Weekly Clinic Schedule & Breaks
                     </span>
-                    <div className="bg-surface p-3 rounded-xl border border-border space-y-1.5 text-xs">
+                    <div className="bg-surface-secondary p-3 rounded-xl border border-border space-y-1.5 text-xs">
                       {docSchedule.schedule.filter(s => s.active).length === 0 ? (
                         <p className="text-muted italic">No active clinic hours configured.</p>
                       ) : (
@@ -1003,11 +1076,11 @@ export function AdminDoctorManagementPage() {
                           .filter(s => s.active)
                           .map((s, idx) => (
                             <div key={idx} className="flex items-center justify-between py-1 border-b border-border/40 last:border-0">
-                              <span className="font-semibold text-navy w-14">{s.dayOfWeek.substring(0, 3)}</span>
+                              <span className="font-semibold text-foreground w-14">{s.dayOfWeek.substring(0, 3)}</span>
                               <span className="text-muted font-mono">{s.startTime} — {s.endTime}</span>
-                              <span className="text-primary-700 font-medium">({s.slotDurationMins}m slots)</span>
+                              <span className="text-primary font-medium">({s.slotDurationMins}m slots)</span>
                               {s.breaks && s.breaks.length > 0 && (
-                                <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded text-xs flex items-center gap-1">
+                                <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded text-xs flex items-center gap-1">
                                   <Coffee className="w-2.5 h-2.5" />
                                   {s.breaks[0].startTime}-{s.breaks[0].endTime}
                                 </span>

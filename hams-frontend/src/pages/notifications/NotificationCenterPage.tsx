@@ -2,16 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Bell,
-  CheckCheck,
-  Calendar,
-  FileText,
-  Clock,
-  ArrowLeft,
-  Info,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
+  Bell, CheckCheck, CalendarDays, Pill,
+  Clock, ArrowLeft, Info, CheckCircle2,
+  ChevronLeft, ChevronRight, CalendarCheck,
+  CalendarX, CalendarClock
 } from 'lucide-react';
 import { notificationApi } from '../../api/notification';
 import type { NotificationItem, PageResponse } from '../../types';
@@ -19,14 +13,23 @@ import { formatDateTime } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/LoadingSkeleton';
+import { useAuthStore } from '../../store/authStore';
+import { PatientNavbar } from '../../components/layout/PatientNavbar';
+import { DoctorNavbar } from '../../components/layout/DoctorNavbar';
+import { AdminNavbar } from '../../components/layout/AdminNavbar';
 import toast from 'react-hot-toast';
 
 export function NotificationCenterPage() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [tab, setTab] = useState<'ALL' | 'UNREAD'>('ALL');
   const [pageData, setPageData] = useState<PageResponse<NotificationItem> | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const isPatient = user?.role === 'PATIENT';
+  const isDoctor = user?.role === 'DOCTOR';
+  const isAdmin = user?.role === 'ADMIN';
 
   const fetchNotifications = async (page = 0, unreadOnly = false) => {
     setLoading(true);
@@ -81,40 +84,54 @@ export function NotificationCenterPage() {
   };
 
   const getIcon = (type: string) => {
-    if (type.includes('APPOINTMENT')) {
-      return <Calendar className="w-5 h-5 text-primary-600" />;
+    const t = type.toUpperCase();
+    if (t.includes('CANCELLED')) {
+      return <CalendarX className="w-5 h-5 text-danger" />;
     }
-    if (type.includes('PRESCRIPTION')) {
-      return <FileText className="w-5 h-5 text-emerald-600" />;
+    if (t.includes('REMINDER')) {
+      return <CalendarClock className="w-5 h-5 text-warning" />;
     }
-    return <Info className="w-5 h-5 text-amber-600" />;
+    if (t.includes('CONFIRMED')) {
+      return <CalendarCheck className="w-5 h-5 text-primary" />;
+    }
+    if (t.includes('APPOINTMENT')) {
+      return <CalendarDays className="w-5 h-5 text-primary" />;
+    }
+    if (t.includes('PRESCRIPTION')) {
+      return <Pill className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />;
+    }
+    return <Info className="w-5 h-5 text-primary" />;
   };
 
   return (
-    <div className="min-h-screen bg-surface py-8">
-      <div className="page-container max-w-4xl">
-        {/* Navigation / Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="min-h-screen bg-surface text-foreground font-sans flex flex-col">
+      {isPatient && <PatientNavbar />}
+      {isDoctor && <DoctorNavbar />}
+      {isAdmin && <AdminNavbar currentTab="notifications" />}
+
+      <main className="page-container max-w-4xl py-8 space-y-6 flex-1">
+        {/* Navigation & Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/60">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 rounded-xl bg-white border border-border text-navy hover:bg-slate-100 transition-colors"
-              aria-label="Go back"
+              className="p-2 rounded-xl bg-card border border-border text-foreground hover:bg-surface-secondary transition-colors"
+              aria-label="Go back to previous page"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold font-display text-navy flex items-center gap-2">
-                <Bell className="w-6 h-6 text-primary-600" />
+              <h1 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
+                <Bell className="w-6 h-6 text-primary" />
                 Notification Center
               </h1>
               <p className="text-xs text-muted mt-0.5">
-                Updates regarding your hospital appointments and medical prescriptions
+                Updates regarding your hospital appointments, schedules, and digital prescriptions
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <Button
               variant="secondary"
               size="sm"
@@ -127,7 +144,7 @@ export function NotificationCenterPage() {
         </div>
 
         {/* Tab Filters */}
-        <div className="flex items-center gap-2 p-1 bg-white border border-border rounded-xl mb-6 w-fit shadow-sm">
+        <div className="flex items-center gap-2 p-1 bg-card border border-border rounded-xl w-fit shadow-subtle">
           <button
             onClick={() => {
               setTab('ALL');
@@ -135,8 +152,8 @@ export function NotificationCenterPage() {
             }}
             className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               tab === 'ALL'
-                ? 'bg-primary-600 text-white shadow-sm'
-                : 'text-muted hover:text-navy hover:bg-slate-50'
+                ? 'bg-primary text-white shadow-subtle'
+                : 'text-muted hover:text-foreground hover:bg-surface-secondary'
             }`}
           >
             All Notifications
@@ -148,20 +165,20 @@ export function NotificationCenterPage() {
             }}
             className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
               tab === 'UNREAD'
-                ? 'bg-primary-600 text-white shadow-sm'
-                : 'text-muted hover:text-navy hover:bg-slate-50'
+                ? 'bg-primary text-white shadow-subtle'
+                : 'text-muted hover:text-foreground hover:bg-surface-secondary'
             }`}
           >
             Unread
           </button>
         </div>
 
-        {/* Content */}
-        <div className="bg-white border border-border rounded-2xl shadow-card overflow-hidden">
+        {/* Content Card */}
+        <div className="bg-card border border-border rounded-2xl shadow-subtle overflow-hidden">
           {loading ? (
             <div className="p-6 space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-slate-100">
+                <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-border/40">
                   <Skeleton className="w-10 h-10 rounded-xl" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/3" />
@@ -172,11 +189,9 @@ export function NotificationCenterPage() {
               ))}
             </div>
           ) : !pageData || pageData.content.length === 0 ? (
-            <EmptyState
-              icon={<Bell className="w-8 h-8 text-muted" />}
-              title={tab === 'UNREAD' ? 'No unread notifications' : 'No notifications yet'}
-              description="You will receive alerts here when your appointments change or prescriptions are created."
-            />
+            <div className="p-8 text-center">
+              <EmptyState.Notifications />
+            </div>
           ) : (
             <div className="divide-y divide-border">
               {pageData.content.map((item) => (
@@ -184,18 +199,18 @@ export function NotificationCenterPage() {
                   key={item.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className={`p-5 flex items-start gap-4 transition-colors hover:bg-slate-50/80 ${
-                    !item.read ? 'bg-primary-50/30' : ''
+                  className={`p-5 flex items-start gap-4 transition-colors hover:bg-surface-secondary/60 ${
+                    !item.read ? 'bg-primary-soft/30' : ''
                   }`}
                 >
-                  <div className="p-3 rounded-xl bg-white border border-border shadow-sm flex-shrink-0">
+                  <div className="p-2.5 rounded-xl bg-surface border border-border shadow-subtle flex-shrink-0">
                     {getIcon(item.type)}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
                       <div className="flex items-center gap-2">
-                        <h4 className={`text-sm ${!item.read ? 'font-bold text-navy' : 'font-medium text-slate-800'}`}>
+                        <h4 className={`text-sm ${!item.read ? 'font-bold text-foreground' : 'font-medium text-foreground/80'}`}>
                           {item.title}
                         </h4>
                         {!item.read && (
@@ -208,19 +223,19 @@ export function NotificationCenterPage() {
                       </div>
                     </div>
 
-                    <p className="text-sm text-slate-600 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
                       {item.message}
                     </p>
 
                     <div className="mt-3 flex items-center justify-between">
-                      <span className="text-[11px] font-mono text-muted bg-slate-100 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono text-muted bg-surface-secondary px-2 py-0.5 rounded-lg border border-border">
                         {item.type.replace(/_/g, ' ')}
                       </span>
 
                       {!item.read && (
                         <button
                           onClick={() => handleMarkAsRead(item.id)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover transition-colors"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Mark as read
@@ -235,10 +250,10 @@ export function NotificationCenterPage() {
 
           {/* Pagination */}
           {pageData && pageData.totalPages > 1 && (
-            <div className="p-4 bg-slate-50 border-t border-border flex items-center justify-between">
+            <div className="p-4 bg-surface-secondary border-t border-border flex items-center justify-between">
               <p className="text-xs text-muted">
-                Showing Page <span className="font-semibold text-navy">{pageData.number + 1}</span> of{' '}
-                <span className="font-semibold text-navy">{pageData.totalPages}</span> ({pageData.totalElements} total)
+                Showing Page <span className="font-semibold text-foreground">{pageData.number + 1}</span> of{' '}
+                <span className="font-semibold text-foreground">{pageData.totalPages}</span> ({pageData.totalElements} total)
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -263,7 +278,7 @@ export function NotificationCenterPage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

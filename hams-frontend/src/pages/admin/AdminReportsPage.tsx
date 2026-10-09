@@ -1,18 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  FileBarChart, Filter, ArrowLeft, Building2,
-  UserCheck, Download, RefreshCw
+  FileBarChart, Filter, Building2,
+  UserCheck, Download, RefreshCw, Calendar, CheckCircle, XCircle
 } from 'lucide-react';
 import { adminApi } from '../../api/admin';
 import type { AdminReportSummary, AppointmentStatus, Department } from '../../types';
 import { Button } from '../../components/ui/Button';
-import { StatCard } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/LoadingSkeleton';
+import { AdminNavbar } from '../../components/layout/AdminNavbar';
 import toast from 'react-hot-toast';
 
 export function AdminReportsPage() {
-  const navigate = useNavigate();
   const [reportData, setReportData] = useState<AdminReportSummary | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -32,7 +30,7 @@ export function AdminReportsPage() {
     }
   };
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
       const data = await adminApi.getReportsSummary({
@@ -47,7 +45,7 @@ export function AdminReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate, selectedDeptId, selectedStatus]);
 
   useEffect(() => {
     fetchDepartments();
@@ -55,7 +53,7 @@ export function AdminReportsPage() {
 
   useEffect(() => {
     fetchReports();
-  }, [startDate, endDate, selectedDeptId, selectedStatus]);
+  }, [fetchReports]);
 
   const handleReset = () => {
     setStartDate('');
@@ -65,30 +63,23 @@ export function AdminReportsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface py-8">
-      <div className="page-container max-w-7xl space-y-6">
+    <div className="min-h-screen bg-surface">
+      <AdminNavbar currentTab="reports" />
+
+      <main className="page-container py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/admin/dashboard')}
-              className="p-2 rounded-xl bg-white border border-border text-navy hover:bg-slate-100 transition-colors"
-              aria-label="Back to dashboard"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold font-display text-navy flex items-center gap-2">
-                <FileBarChart className="w-6 h-6 text-primary-600" />
-                Reports & Analytics
-              </h1>
-              <p className="text-xs text-muted mt-0.5">
-                Database-aggregated hospital performance, departmental volume, and clinical throughput
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold font-display text-foreground flex items-center gap-2 tracking-tight">
+              <FileBarChart className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+              Reports & Analytics
+            </h1>
+            <p className="text-sm text-muted mt-0.5">
+              Database-aggregated hospital performance, departmental volume, and clinical throughput
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 no-print">
             <Button
               variant="secondary"
               size="sm"
@@ -109,15 +100,17 @@ export function AdminReportsPage() {
         </div>
 
         {/* Filter Controls */}
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-navy">
-            <Filter className="w-4 h-4 text-primary-600" />
+        <div className="card p-5 bg-card border border-border no-print">
+          <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-foreground">
+            <Filter className="w-4 h-4 text-primary-600 dark:text-primary-400" />
             <span>Filter Operational Metrics</span>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
-              <label className="label text-[11px] mb-1">Start Date</label>
+              <label htmlFor="report-start-date" className="label text-xs mb-1">Start Date</label>
               <input
+                id="report-start-date"
                 type="date"
                 aria-label="Start Date"
                 className="input-field py-1.5"
@@ -125,9 +118,11 @@ export function AdminReportsPage() {
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
+
             <div>
-              <label className="label text-[11px] mb-1">End Date</label>
+              <label htmlFor="report-end-date" className="label text-xs mb-1">End Date</label>
               <input
+                id="report-end-date"
                 type="date"
                 aria-label="End Date"
                 className="input-field py-1.5"
@@ -135,9 +130,11 @@ export function AdminReportsPage() {
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
+
             <div>
-              <label className="label text-[11px] mb-1">Department</label>
+              <label htmlFor="report-dept" className="label text-xs mb-1">Department</label>
               <select
+                id="report-dept"
                 aria-label="Department"
                 className="input-field py-1.5"
                 value={selectedDeptId}
@@ -151,9 +148,11 @@ export function AdminReportsPage() {
                 ))}
               </select>
             </div>
+
             <div>
-              <label className="label text-[11px] mb-1">Status</label>
+              <label htmlFor="report-status" className="label text-xs mb-1">Status</label>
               <select
+                id="report-status"
                 aria-label="Status"
                 className="input-field py-1.5"
                 value={selectedStatus}
@@ -168,9 +167,10 @@ export function AdminReportsPage() {
                 <option value="RESCHEDULED">Rescheduled</option>
               </select>
             </div>
+
             <div className="flex items-end">
               <Button variant="secondary" onClick={handleReset} className="w-full">
-                Reset
+                Reset Filters
               </Button>
             </div>
           </div>
@@ -180,7 +180,7 @@ export function AdminReportsPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="card p-5 space-y-3">
+              <div key={i} className="card p-5 space-y-3 bg-card border border-border">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-8 w-16" />
               </div>
@@ -188,30 +188,55 @@ export function AdminReportsPage() {
           </div>
         ) : reportData ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Filtered Appointments"
-              value={reportData.totalAppointments}
-              icon={<FileBarChart className="w-6 h-6" />}
-              color="blue"
-            />
-            <StatCard
-              title="Completed Consultations"
-              value={reportData.statusCounts['COMPLETED'] || 0}
-              icon={<UserCheck className="w-6 h-6" />}
-              color="green"
-            />
-            <StatCard
-              title="Confirmed Bookings"
-              value={reportData.statusCounts['CONFIRMED'] || 0}
-              icon={<Building2 className="w-6 h-6" />}
-              color="blue"
-            />
-            <StatCard
-              title="Cancelled Bookings"
-              value={reportData.statusCounts['CANCELLED'] || 0}
-              icon={<FileBarChart className="w-6 h-6" />}
-              color="red"
-            />
+            <div className="card p-5 bg-card border border-border flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted font-medium uppercase tracking-wider">Filtered Volume</p>
+                <p className="text-2xl font-display font-bold text-foreground mt-0.5">{reportData.totalAppointments}</p>
+                <span className="text-[11px] text-muted">Total matches</span>
+              </div>
+              <div className="w-11 h-11 rounded-xl bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800/40 flex items-center justify-center text-primary-600 dark:text-primary-400">
+                <Calendar className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="card p-5 bg-card border border-border flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted font-medium uppercase tracking-wider">Completed Consultations</p>
+                <p className="text-2xl font-display font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  {reportData.statusCounts['COMPLETED'] || 0}
+                </p>
+                <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80">Discharged / Prescribed</span>
+              </div>
+              <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <UserCheck className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="card p-5 bg-card border border-border flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted font-medium uppercase tracking-wider">Confirmed Bookings</p>
+                <p className="text-2xl font-display font-bold text-primary-600 dark:text-primary-400 mt-0.5">
+                  {reportData.statusCounts['CONFIRMED'] || 0}
+                </p>
+                <span className="text-[11px] text-muted">Awaiting check-in</span>
+              </div>
+              <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 flex items-center justify-center text-primary-600 dark:text-primary-400">
+                <CheckCircle className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="card p-5 bg-card border border-border flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted font-medium uppercase tracking-wider">Cancelled Bookings</p>
+                <p className="text-2xl font-display font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                  {reportData.statusCounts['CANCELLED'] || 0}
+                </p>
+                <span className="text-[11px] text-rose-600/80 dark:text-rose-400/80">Withdrawn by user</span>
+              </div>
+              <div className="w-11 h-11 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                <XCircle className="w-5 h-5" />
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -219,23 +244,26 @@ export function AdminReportsPage() {
         {reportData && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Department Summary Table */}
-            <div className="card p-6">
+            <div className="card p-6 bg-card border border-border">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display font-bold text-navy text-base">
-                  Department Volume Breakdown
-                </h3>
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  <h3 className="font-display font-bold text-foreground text-base">
+                    Department Volume Breakdown
+                  </h3>
+                </div>
                 <span className="text-xs text-muted">Aggregated in DB</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-border text-muted font-semibold">
                     <tr>
-                      <th className="pb-2.5">Department</th>
-                      <th className="pb-2.5">Staff Doctors</th>
-                      <th className="pb-2.5 text-right">Appointments</th>
+                      <th scope="col" className="pb-3">Department</th>
+                      <th scope="col" className="pb-3">Staff Doctors</th>
+                      <th scope="col" className="pb-3 text-right">Appointments</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/60">
+                  <tbody className="divide-y divide-border">
                     {reportData.departmentStats.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="py-6 text-center text-muted">
@@ -244,10 +272,10 @@ export function AdminReportsPage() {
                       </tr>
                     ) : (
                       reportData.departmentStats.map((dep) => (
-                        <tr key={dep.departmentId} className="hover:bg-slate-50">
-                          <td className="py-2.5 font-semibold text-navy">{dep.departmentName}</td>
-                          <td className="py-2.5 text-slate-600">{dep.doctorCount} doctors</td>
-                          <td className="py-2.5 font-mono font-bold text-navy text-right">
+                        <tr key={dep.departmentId} className="hover:bg-surface/50 transition-colors">
+                          <td className="py-3 font-semibold text-foreground">{dep.departmentName}</td>
+                          <td className="py-3 text-muted">{dep.doctorCount} doctors</td>
+                          <td className="py-3 font-mono font-bold text-foreground text-right">
                             {dep.appointmentCount}
                           </td>
                         </tr>
@@ -259,25 +287,28 @@ export function AdminReportsPage() {
             </div>
 
             {/* Doctor Load Table */}
-            <div className="card p-6">
+            <div className="card p-6 bg-card border border-border">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display font-bold text-navy text-base">
-                  Doctor Clinical Throughput
-                </h3>
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  <h3 className="font-display font-bold text-foreground text-base">
+                    Doctor Clinical Throughput
+                  </h3>
+                </div>
                 <span className="text-xs text-muted">Aggregated in DB</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-border text-muted font-semibold">
                     <tr>
-                      <th className="pb-2.5">Doctor</th>
-                      <th className="pb-2.5">Department</th>
-                      <th className="pb-2.5 text-center">Completed</th>
-                      <th className="pb-2.5 text-center">Cancelled</th>
-                      <th className="pb-2.5 text-right">Total</th>
+                      <th scope="col" className="pb-3">Doctor</th>
+                      <th scope="col" className="pb-3">Department</th>
+                      <th scope="col" className="pb-3 text-center">Completed</th>
+                      <th scope="col" className="pb-3 text-center">Cancelled</th>
+                      <th scope="col" className="pb-3 text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/60">
+                  <tbody className="divide-y divide-border">
                     {reportData.doctorStats.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-6 text-center text-muted">
@@ -286,16 +317,16 @@ export function AdminReportsPage() {
                       </tr>
                     ) : (
                       reportData.doctorStats.map((doc) => (
-                        <tr key={doc.doctorId} className="hover:bg-slate-50">
-                          <td className="py-2.5 font-semibold text-navy">Dr. {doc.doctorName}</td>
-                          <td className="py-2.5 text-slate-600">{doc.departmentName || 'General'}</td>
-                          <td className="py-2.5 font-mono text-emerald-600 font-semibold text-center">
+                        <tr key={doc.doctorId} className="hover:bg-surface/50 transition-colors">
+                          <td className="py-3 font-semibold text-foreground">Dr. {doc.doctorName}</td>
+                          <td className="py-3 text-muted">{doc.departmentName || 'General'}</td>
+                          <td className="py-3 font-mono text-emerald-600 dark:text-emerald-400 font-semibold text-center">
                             {doc.completedCount}
                           </td>
-                          <td className="py-2.5 font-mono text-rose-600 font-semibold text-center">
+                          <td className="py-3 font-mono text-rose-600 dark:text-rose-400 font-semibold text-center">
                             {doc.cancelledCount}
                           </td>
-                          <td className="py-2.5 font-mono font-bold text-navy text-right">
+                          <td className="py-3 font-mono font-bold text-foreground text-right">
                             {doc.appointmentCount}
                           </td>
                         </tr>
@@ -307,7 +338,7 @@ export function AdminReportsPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

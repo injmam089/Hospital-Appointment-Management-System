@@ -20,8 +20,8 @@ export function Card({ children, className, hover = false, onClick, padding = 'm
   if (hover || onClick) {
     return (
       <motion.div
-        className={cn('card rounded-2xl', paddingClasses[padding], onClick && 'cursor-pointer', className)}
-        whileHover={{ y: -2, boxShadow: '0 8px 25px -4px rgba(15, 23, 42, 0.08), 0 3px 6px -2px rgba(15, 23, 42, 0.04)' }}
+        className={cn('card rounded-2xl bg-surface border border-border text-foreground', paddingClasses[padding], onClick && 'cursor-pointer', className)}
+        whileHover={{ y: -2 }}
         transition={{ duration: 0.2 }}
         onClick={onClick}
       >
@@ -31,7 +31,7 @@ export function Card({ children, className, hover = false, onClick, padding = 'm
   }
 
   return (
-    <div className={cn('card rounded-2xl', paddingClasses[padding], className)}>
+    <div className={cn('card rounded-2xl bg-surface border border-border text-foreground', paddingClasses[padding], className)}>
       {children}
     </div>
   );
@@ -49,21 +49,21 @@ interface StatCardProps {
 
 export function StatCard({ title, value, icon, change, changeType = 'neutral', color = 'blue', delay = 0 }: StatCardProps) {
   const colorConfig = {
-    blue:  { bg: 'bg-medical-blue-light',  text: 'text-primary-600', border: 'border-blue-100' },
-    green: { bg: 'bg-medical-green-light', text: 'text-medical-green', border: 'border-emerald-100' },
-    amber: { bg: 'bg-medical-amber-light', text: 'text-medical-amber', border: 'border-amber-100' },
-    red:   { bg: 'bg-medical-red-light',   text: 'text-medical-red', border: 'border-red-100' },
+    blue:  { bg: 'bg-primary-soft',  text: 'text-primary', border: 'border-primary/20' },
+    green: { bg: 'bg-medical-green-light', text: 'text-medical-green', border: 'border-medical-green/20' },
+    amber: { bg: 'bg-medical-amber-light', text: 'text-medical-amber', border: 'border-medical-amber/20' },
+    red:   { bg: 'bg-medical-red-light',   text: 'text-medical-red', border: 'border-medical-red/20' },
   };
 
   const changeColors = {
-    positive: 'text-medical-green',
-    negative: 'text-medical-red',
+    positive: 'text-success',
+    negative: 'text-danger',
     neutral:  'text-muted',
   };
 
   return (
     <motion.div
-      className="card p-6"
+      className="card p-6 bg-surface border border-border text-foreground"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay }}
@@ -71,7 +71,7 @@ export function StatCard({ title, value, icon, change, changeType = 'neutral', c
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted font-medium">{title}</p>
-          <p className="text-3xl font-display font-bold text-navy mt-1 tracking-tight">{value}</p>
+          <p className="text-3xl font-display font-bold text-foreground mt-1 tracking-tight">{value}</p>
           {change && (
             <p className={cn('text-xs font-medium mt-2', changeColors[changeType])}>
               {change}

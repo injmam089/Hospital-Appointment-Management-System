@@ -6,13 +6,63 @@
 
 @layer base {
   :root {
-    --color-primary: #2563EB;
-    --color-navy: #0F172A;
-    --color-navy-deep: #0B1224;
-    --color-surface: #F7F9FC;
-    --color-card: #FFFFFF;
-    --color-border: #E2E8F0;
-    --color-muted: #64748B;
+    /* HAMS Central Medical Design Tokens - Light Theme */
+    --background: #F7F9FC;
+    --surface: #FFFFFF;
+    --surface-secondary: #F1F5F9;
+    --foreground: #0F172A;
+    --primary: #2563EB;
+    --primary-hover: #1D4ED8;
+    --primary-soft: #EFF6FF;
+    --secondary: #475569;
+    --muted: #64748B;
+    --muted-light: #94A3B8;
+    --border: #E2E8F0;
+    --border-subtle: #F1F5F9;
+    --success: #10B981;
+    --success-soft: #ECFDF5;
+    --warning: #F59E0B;
+    --warning-soft: #FFFBEB;
+    --danger: #EF4444;
+    --danger-soft: #FEF2F2;
+    --info: #0EA5E9;
+    --info-soft: #F0F9FF;
+    --focus-ring: rgba(37, 99, 235, 0.25);
+
+    --shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+    --shadow-elevated: 0 8px 25px -4px rgba(15, 23, 42, 0.08), 0 3px 6px -2px rgba(15, 23, 42, 0.04);
+    --shadow-modal: 0 20px 45px -10px rgba(15, 23, 42, 0.18);
+  }
+
+  .dark {
+    /* HAMS Central Medical Design Tokens - Dark Theme */
+    --background: #07111F;
+    --surface: #0D1B2A;
+    --surface-secondary: #132238;
+    --foreground: #F8FAFC;
+    --primary: #3B82F6;
+    --primary-hover: #2563EB;
+    --primary-soft: rgba(59, 130, 246, 0.15);
+    --secondary: #CBD5E1;
+    --muted: #94A3B8;
+    --muted-light: #64748B;
+    --border: #243447;
+    --border-subtle: #1A283B;
+    --success: #34D399;
+    --success-soft: rgba(52, 211, 153, 0.15);
+    --warning: #FBBF24;
+    --warning-soft: rgba(251, 191, 36, 0.15);
+    --danger: #F87171;
+    --danger-soft: rgba(248, 113, 113, 0.15);
+    --info: #38BDF8;
+    --info-soft: rgba(56, 189, 248, 0.15);
+    --focus-ring: rgba(59, 130, 246, 0.35);
+
+    --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-elevated: 0 8px 25px -4px rgba(0, 0, 0, 0.6), 0 3px 6px -2px rgba(0, 0, 0, 0.4);
+    --shadow-modal: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
   }
 
   * {
@@ -20,17 +70,53 @@
   }
 
   html {
-    @apply scroll-smooth antialiased;
+    @apply scroll-smooth antialiased overflow-x-hidden;
+  }
+
+  /* Temporary transition when toggling themes */
+  html.theme-transitioning,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, fill 0.2s ease, stroke 0.2s ease, box-shadow 0.2s ease !important;
+    transition-delay: 0s !important;
+  }
+
+  ::selection {
+    background-color: var(--primary-soft);
+    color: var(--primary);
   }
 
   body {
-    @apply bg-[#F7F9FC] text-[#0F172A] font-sans antialiased selection:bg-blue-100 selection:text-blue-900;
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply font-sans antialiased overflow-x-hidden min-h-screen;
     font-feature-settings: 'cv11', 'ss01', 'inter';
-    background-color: #F7F9FC;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display text-[#0F172A] tracking-tight;
+    @apply font-display tracking-tight;
+    color: var(--foreground);
+  }
+
+  /* Graceful fallback overrides for dark theme on legacy elements */
+  .dark .bg-white {
+    background-color: var(--surface) !important;
+  }
+  .dark [class*="bg-[#F7F9FC]"] {
+    background-color: var(--background) !important;
+  }
+  .dark [class*="text-[#0F172A]"] {
+    color: var(--foreground) !important;
+  }
+  .dark [class*="text-[#64748B]"] {
+    color: var(--muted) !important;
+  }
+  .dark [class*="border-[#E2E8F0]"] {
+    border-color: var(--border) !important;
+  }
+  .dark [class*="border-[#E5E7EB]"] {
+    border-color: var(--border) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -44,68 +130,87 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#2563EB] text-white
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white
            text-sm font-medium rounded-btn shadow-sm transition-all duration-200
-           hover:bg-[#1D4ED8] active:scale-[0.98] focus-visible:outline-none
-           focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2
+           hover:bg-primary-hover active:scale-[0.98] focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
            disabled:opacity-50 disabled:cursor-not-allowed select-none;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-[#0F172A]
-           text-sm font-medium rounded-btn border border-[#E2E8F0] shadow-subtle transition-all duration-200
-           hover:bg-[#F8FAFC] hover:border-[#CBD5E1] active:scale-[0.98] focus-visible:outline-none
-           focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface text-foreground
+           text-sm font-medium rounded-btn border border-border shadow-subtle transition-all duration-200
+           hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
            disabled:opacity-50 disabled:cursor-not-allowed select-none;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-[#64748B]
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-muted
            text-sm font-medium rounded-btn transition-all duration-200
-           hover:bg-[#F1F5F9] hover:text-[#0F172A] active:scale-[0.98] focus-visible:outline-none
-           focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2 select-none;
+           hover:bg-surface-secondary hover:text-foreground active:scale-[0.98] focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 select-none;
   }
 
   .card {
-    @apply bg-white rounded-card border border-[#E2E8F0] shadow-card transition-all duration-200;
+    background-color: var(--surface);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s ease;
   }
 
   .card-hoverable {
-    @apply bg-white rounded-card border border-[#E2E8F0] shadow-card transition-all duration-200 hover:shadow-card-hover hover:border-[#CBD5E1];
+    background-color: var(--surface);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s ease;
+  }
+
+  .card-hoverable:hover {
+    box-shadow: var(--shadow-elevated);
+    border-color: var(--border);
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 bg-white border border-[#E2E8F0] rounded-btn text-sm text-[#0F172A]
-           placeholder:text-[#94A3B8] transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15 focus:border-[#2563EB]
-           disabled:bg-[#F1F5F9] disabled:cursor-not-allowed;
+    @apply w-full px-4 py-2.5 bg-surface border border-border rounded-btn text-sm text-foreground
+           placeholder:text-muted transition-all duration-200
+           focus:outline-none focus:border-primary
+           disabled:bg-surface-secondary disabled:cursor-not-allowed;
+  }
+
+  .input-field:focus {
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 
   .label {
-    @apply block text-xs font-semibold uppercase tracking-wider text-[#475569] mb-1.5;
+    @apply block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5;
   }
 
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-md;
   }
 
-  .badge-blue   { @apply badge bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE]/70; }
-  .badge-green  { @apply badge bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]/70; }
-  .badge-red    { @apply badge bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]/70; }
-  .badge-amber  { @apply badge bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]/70; }
-  .badge-purple { @apply badge bg-[#F5F3FF] text-[#6D28D9] border border-[#DDD6FE]/70; }
-  .badge-gray   { @apply badge bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0]; }
+  .badge-blue   { @apply badge bg-primary-soft text-primary border border-border; }
+  .badge-green  { @apply badge bg-medical-green-light text-medical-green border border-border; }
+  .badge-red    { @apply badge bg-medical-red-light text-medical-red border border-border; }
+  .badge-amber  { @apply badge bg-medical-amber-light text-medical-amber border border-border; }
+  .badge-purple { @apply badge bg-medical-purple-light text-medical-purple border border-border; }
+  .badge-gray   { @apply badge bg-surface-secondary text-muted border border-border; }
 
   .page-container {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 
   .section-title {
-    @apply text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-[#0F172A] tracking-tight;
+    @apply text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-foreground tracking-tight;
   }
 
   .section-subtitle {
-    @apply text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl mx-auto font-normal;
+    @apply text-sm sm:text-base text-muted leading-relaxed max-w-xl mx-auto font-normal;
   }
 }
 
@@ -122,3 +227,50 @@
     display: none;
   }
 }
+
+@media print {
+  /* Hide navigation, buttons, filters, and non-printable elements */
+  header,
+  nav,
+  footer,
+  aside,
+  button,
+  .no-print,
+  [role="dialog"] > div > div > button {
+    display: none !important;
+  }
+
+  /* Reset document flow and typography */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+  }
+
+  .page-container,
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Prevent page-breaks inside tables, cards, and list rows */
+  .card,
+  table,
+  tr {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Modal print adjustments: force content to flow cleanly */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+  }
+}
+

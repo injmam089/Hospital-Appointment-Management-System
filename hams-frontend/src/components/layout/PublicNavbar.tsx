@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Stethoscope, LayoutDashboard, LogOut } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../lib/utils';
 
@@ -15,6 +16,7 @@ const navLinks = [
 export function PublicNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
 
@@ -23,6 +25,19 @@ export function PublicNavbar() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close mobile drawer on Escape and restore focus
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileOpen(false);
+        mobileMenuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen]);
 
   const getDashboardPath = () => {
     if (user?.role === 'ADMIN') return '/admin/dashboard';
@@ -35,19 +50,19 @@ export function PublicNavbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-200 border-b',
         isScrolled
-          ? 'bg-white/95 backdrop-blur-md border-[#E5E7EB] shadow-subtle'
-          : 'bg-white border-[#E5E7EB]'
+          ? 'bg-surface/95 backdrop-blur-md border-border shadow-subtle'
+          : 'bg-surface border-border'
       )}
     >
-      <nav className="page-container">
+      <nav aria-label="Public website primary navigation" className="page-container">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center group-hover:bg-primary-700 transition-colors shadow-sm">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:bg-primary-hover transition-colors shadow-sm">
               <Stethoscope className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
             </div>
             <div>
-              <span className="font-display font-bold text-navy text-lg leading-none tracking-tight">HAMS</span>
+              <span className="font-display font-bold text-foreground text-lg leading-none tracking-tight">HAMS</span>
               <span className="text-[11px] text-muted block leading-none font-medium mt-0.5">Healthcare</span>
             </div>
           </Link>
@@ -58,7 +73,7 @@ export function PublicNavbar() {
               <a
                 key={link.label}
                 href={link.href}
-                className="px-3.5 py-2 text-sm font-medium text-[#475569] hover:text-primary-600 hover:bg-[#F8FAFC] rounded-btn transition-colors"
+                className="px-3.5 py-2 text-sm font-medium text-muted hover:text-primary hover:bg-surface-secondary rounded-btn transition-colors"
               >
                 {link.label}
               </a>
@@ -66,7 +81,8 @@ export function PublicNavbar() {
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
+            <ThemeToggle size="sm" />
             {isAuthenticated ? (
               <>
                 <Button
@@ -93,14 +109,18 @@ export function PublicNavbar() {
           </div>
 
           {/* Mobile Toggle */}
-          <button
-            className="md:hidden p-2 rounded-btn text-[#475569] hover:text-navy hover:bg-[#F8FAFC] transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle navigation"
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle size="sm" />
+            <button
+              ref={mobileMenuButtonRef}
+              className="min-w-[44px] min-h-[44px] p-2 rounded-btn text-muted hover:text-foreground hover:bg-surface-secondary transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -111,21 +131,21 @@ export function PublicNavbar() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.15 }}
-              className="md:hidden bg-white border border-[#E5E7EB] rounded-xl mt-2 mb-4 p-4 shadow-modal"
+              className="md:hidden bg-surface border border-border rounded-xl mt-2 mb-4 p-4 shadow-modal text-foreground"
             >
-              <div className="space-y-1">
+              <nav aria-label="Public website mobile navigation" className="space-y-1">
                 {navLinks.map((link) => (
                   <a
                     key={link.label}
                     href={link.href}
-                    className="block px-3 py-2 text-sm font-medium text-[#475569] hover:text-primary-600 hover:bg-[#F8FAFC] rounded-btn transition-colors"
+                    className="block px-3 py-2 text-sm font-medium text-muted hover:text-primary hover:bg-surface-secondary rounded-btn transition-colors"
                     onClick={() => setMobileOpen(false)}
                   >
                     {link.label}
                   </a>
                 ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-[#E5E7EB] space-y-2">
+              </nav>
+              <div className="mt-4 pt-4 border-t border-border space-y-2">
                 {isAuthenticated ? (
                   <>
                     <Button

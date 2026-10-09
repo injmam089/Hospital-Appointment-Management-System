@@ -19,12 +19,12 @@ export function Badge({ children, variant = 'gray', className, dot }: BadgeProps
     gray:   'badge-gray',
   };
   const dotColors = {
-    blue:   'bg-primary-600',
-    green:  'bg-emerald-500',
-    red:    'bg-red-500',
-    amber:  'bg-amber-500',
-    purple: 'bg-purple-600',
-    gray:   'bg-slate-400',
+    blue:   'bg-primary',
+    green:  'bg-success',
+    red:    'bg-danger',
+    amber:  'bg-warning',
+    purple: 'bg-medical-purple',
+    gray:   'bg-muted',
   };
 
   return (
@@ -35,12 +35,13 @@ export function Badge({ children, variant = 'gray', className, dot }: BadgeProps
   );
 }
 
-export function AppointmentStatusBadge({ status }: { status: AppointmentStatus }) {
+export function AppointmentStatusBadge({ status, className }: { status: AppointmentStatus; className?: string }) {
   const config = getAppointmentStatusConfig(status);
+  const StatusIcon = config.icon;
   return (
-    <span className={cn('badge', config.className)}>
-      <span className={cn('w-1.5 h-1.5 rounded-full', config.dotColor)} />
-      {config.label}
+    <span className={cn('badge gap-1.5 px-2.5 py-0.5', config.className, className)}>
+      <StatusIcon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} aria-hidden="true" />
+      <span>{config.label}</span>
     </span>
   );
 }

@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -7,59 +8,82 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        surface: {
+          DEFAULT: 'var(--surface)',
+          secondary: 'var(--surface-secondary)',
+          background: 'var(--background)',
+          card: 'var(--surface)',
+        },
+        card: 'var(--surface)',
+        border: {
+          DEFAULT: 'var(--border)',
+          subtle: 'var(--border-subtle)',
+          light: 'var(--border-subtle)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted)',
+          light: 'var(--muted-light)',
+        },
         primary: {
+          DEFAULT: 'var(--primary)',
+          hover: 'var(--primary-hover)',
+          soft: 'var(--primary-soft)',
           50:  '#EFF6FF',
           100: '#DBEAFE',
           200: '#BFDBFE',
           300: '#93C5FD',
           400: '#60A5FA',
           500: '#3B82F6',
-          600: '#2563EB', // Primary
-          700: '#1D4ED8', // Primary Hover
+          600: '#2563EB',
+          700: '#1D4ED8',
           800: '#1E40AF',
           900: '#1E3A8A',
           950: '#172554',
         },
         navy: {
-          DEFAULT: '#0F172A', // Primary Text
-          midnight: '#0B1224', // Deep Navy
-          dark: '#0F172A',
+          DEFAULT: 'var(--foreground)',
+          midnight: '#07111F',
+          dark: '#0D1B2A',
           light: '#1E293B',
           slate: '#0F172A',
         },
-        surface: {
-          DEFAULT: '#F7F9FC', // App Background
-          background: '#F7F9FC',
-          card: '#FFFFFF',
-        },
-        card: '#FFFFFF',
-        border: {
-          DEFAULT: '#E2E8F0', // Border
-          light: '#F1F5F9',
-          subtle: '#E2E8F0',
-        },
-        muted: {
-          DEFAULT: '#64748B', // Secondary Text
-          foreground: '#94A3B8', // Muted
-        },
         medical: {
-          blue: '#2563EB',
-          'blue-light': '#EFF6FF',
-          'blue-text': '#1D4ED8',
-          green: '#10B981', // Success
-          'green-light': '#ECFDF5',
-          'green-text': '#047857',
-          amber: '#F59E0B', // Warning
-          'amber-light': '#FFFBEB',
-          'amber-text': '#B45309',
-          red: '#EF4444', // Error
-          'red-light': '#FEF2F2',
-          'red-text': '#B91C1C',
+          blue: 'var(--primary)',
+          'blue-light': 'var(--primary-soft)',
+          'blue-text': 'var(--primary)',
+          green: 'var(--success)',
+          'green-light': 'var(--success-soft)',
+          'green-text': 'var(--success)',
+          amber: 'var(--warning)',
+          'amber-light': 'var(--warning-soft)',
+          'amber-text': 'var(--warning)',
+          red: 'var(--danger)',
+          'red-light': 'var(--danger-soft)',
+          'red-text': 'var(--danger)',
           purple: '#8B5CF6',
           'purple-light': '#F5F3FF',
           'purple-text': '#6D28D9',
-          info: '#0284C7',
-          'info-light': '#F0F9FF',
+          info: 'var(--info)',
+          'info-light': 'var(--info-soft)',
+        },
+        success: {
+          DEFAULT: 'var(--success)',
+          soft: 'var(--success-soft)',
+        },
+        warning: {
+          DEFAULT: 'var(--warning)',
+          soft: 'var(--warning-soft)',
+        },
+        danger: {
+          DEFAULT: 'var(--danger)',
+          soft: 'var(--danger-soft)',
+        },
+        info: {
+          DEFAULT: 'var(--info)',
+          soft: 'var(--info-soft)',
         },
       },
       fontFamily: {
@@ -77,10 +101,11 @@ export default {
         btn: '12px',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03)',
-        'card-hover': '0 8px 25px -4px rgba(15, 23, 42, 0.08), 0 3px 6px -2px rgba(15, 23, 42, 0.04)',
-        modal: '0 20px 45px -10px rgba(15, 23, 42, 0.18)',
-        subtle: '0 1px 2px rgba(15, 23, 42, 0.04)',
+        subtle: 'var(--shadow-subtle)',
+        card: 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-elevated)',
+        elevated: 'var(--shadow-elevated)',
+        modal: 'var(--shadow-modal)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',

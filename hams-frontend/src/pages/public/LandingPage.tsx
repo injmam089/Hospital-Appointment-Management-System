@@ -46,7 +46,7 @@ const trustPoints = [
   'Strict role-based access control (RBAC)',
   'Protected patient health documentation',
   'Deterministic double-booking prevention engine',
-  'Tamper-evident clinical audit trails & event logging',
+  'Secure administrative audit trails & event logging',
   'Stateless REST infrastructure with verified contracts',
 ];
 
@@ -67,13 +67,13 @@ export function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] text-[#0F172A] font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       <PublicNavbar />
 
       {/* ============================================================ */}
       {/* 1. HERO SECTION */}
       {/* ============================================================ */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-[#F7F9FC] border-b border-[#E2E8F0]">
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-background border-b border-border">
         {/* Subtle radial ambient lighting */}
         <div
           className="absolute top-0 right-1/4 w-[650px] h-[650px] rounded-full opacity-40 pointer-events-none"

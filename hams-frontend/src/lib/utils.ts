@@ -46,19 +46,23 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function getAppointmentStatusConfig(status: AppointmentStatus) {
-  const config: Record<AppointmentStatus, { label: string; className: string; dotColor: string }> = {
-    PENDING:         { label: 'Pending',         className: 'badge-amber',  dotColor: 'bg-amber-500' },
-    CONFIRMED:       { label: 'Confirmed',       className: 'badge-blue',   dotColor: 'bg-primary-600' },
-    CHECKED_IN:      { label: 'Checked In',      className: 'badge-amber',  dotColor: 'bg-amber-500' },
-    IN_CONSULTATION: { label: 'In Consultation', className: 'badge-purple', dotColor: 'bg-purple-600' },
-    COMPLETED:       { label: 'Completed',       className: 'badge-green',  dotColor: 'bg-emerald-500' },
-    CANCELLED:       { label: 'Cancelled',       className: 'badge-red',    dotColor: 'bg-red-500' },
-    REJECTED:        { label: 'Rejected',        className: 'badge-red',    dotColor: 'bg-red-500' },
-    NO_SHOW:         { label: 'No Show',         className: 'badge-gray',   dotColor: 'bg-slate-400' },
-    RESCHEDULED:     { label: 'Rescheduled',     className: 'badge-blue',   dotColor: 'bg-primary-500' },
+import { getAppointmentStatusIcon } from '../config/iconRegistry';
+import type { LucideIcon } from 'lucide-react';
+
+export function getAppointmentStatusConfig(status: AppointmentStatus): { label: string; className: string; dotColor: string; icon: LucideIcon } {
+  const icon = getAppointmentStatusIcon(status);
+  const config: Record<AppointmentStatus, { label: string; className: string; dotColor: string; icon: LucideIcon }> = {
+    PENDING:         { label: 'Pending',         className: 'badge-amber',  dotColor: 'bg-amber-500', icon },
+    CONFIRMED:       { label: 'Confirmed',       className: 'badge-blue',   dotColor: 'bg-primary-600', icon },
+    CHECKED_IN:      { label: 'Checked In',      className: 'badge-amber',  dotColor: 'bg-amber-500', icon },
+    IN_CONSULTATION: { label: 'In Consultation', className: 'badge-purple', dotColor: 'bg-purple-600', icon },
+    COMPLETED:       { label: 'Completed',       className: 'badge-green',  dotColor: 'bg-emerald-500', icon },
+    CANCELLED:       { label: 'Cancelled',       className: 'badge-red',    dotColor: 'bg-red-500', icon },
+    REJECTED:        { label: 'Rejected',        className: 'badge-red',    dotColor: 'bg-red-500', icon },
+    NO_SHOW:         { label: 'No Show',         className: 'badge-gray',   dotColor: 'bg-slate-400', icon },
+    RESCHEDULED:     { label: 'Rescheduled',     className: 'badge-blue',   dotColor: 'bg-primary-500', icon },
   };
-  return config[status] || { label: status, className: 'badge-gray', dotColor: 'bg-slate-400' };
+  return config[status] || { label: status, className: 'badge-gray', dotColor: 'bg-slate-400', icon };
 }
 
 export function generateInitials(firstName: string, lastName: string): string {

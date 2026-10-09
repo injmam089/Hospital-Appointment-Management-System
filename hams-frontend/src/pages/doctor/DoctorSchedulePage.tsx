@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Clock, Calendar as CalendarIcon, Coffee, Plus,
+  Clock, Calendar as CalendarIcon, Coffee, Plus,
   Trash2, Save, CheckCircle2, Ban, RefreshCw,
   Sun, Moon, Shield, CalendarDays
 } from 'lucide-react';
@@ -11,6 +10,7 @@ import { scheduleApi, type CreateLeavePayload } from '../../api/schedule';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { extractApiError } from '../../api/client';
+import { DoctorNavbar } from '../../components/layout/DoctorNavbar';
 import type {
   DayOfWeek,
   DayAvailability,
@@ -83,7 +83,7 @@ export function DoctorSchedulePage() {
     try {
       const data = await scheduleApi.getOwnLeaves();
       setLeaves(data);
-    } catch (err) {
+    } catch {
       // Non-blocking
     }
   };
@@ -93,8 +93,7 @@ export function DoctorSchedulePage() {
     try {
       const data = await scheduleApi.previewOwnSlots(date);
       setPreviewSlots(data);
-    } catch (err) {
-      // Preview error silently handled or badge
+    } catch {
       setPreviewSlots(null);
     } finally {
       setIsPreviewLoading(false);
@@ -186,7 +185,6 @@ export function DoctorSchedulePage() {
   };
 
   const handleSaveSchedule = async () => {
-    // Client-side quick check
     for (const item of schedule) {
       if (item.active) {
         if (!item.startTime || !item.endTime) {
@@ -260,25 +258,18 @@ export function DoctorSchedulePage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Top Bar */}
-      <header className="bg-white border-b border-border sticky top-0 z-20 shadow-sm">
-        <div className="page-container py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/doctor/dashboard"
-              className="p-2 rounded-xl text-muted hover:text-navy hover:bg-surface transition-colors"
-              title="Return to Doctor Dashboard"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-display font-bold text-navy text-xl">Schedule & Availability</h1>
-                <Badge variant="green" dot>Active Planner</Badge>
-              </div>
-              <p className="text-xs text-muted">Weekly consultation hours, slot durations, breaks, and leaves</p>
+    <div className="min-h-screen bg-surface text-foreground font-sans flex flex-col">
+      <DoctorNavbar currentTab="schedule" />
+
+      <main className="page-container py-8 max-w-7xl flex-1">
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border mb-8">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-display font-bold text-foreground text-2xl">Schedule & Availability</h1>
+              <Badge variant="green" dot>Active Planner</Badge>
             </div>
+            <p className="text-sm text-muted mt-1">Weekly consultation hours, slot durations, breaks, and clinical leaves</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -293,36 +284,30 @@ export function DoctorSchedulePage() {
             </Button>
           </div>
         </div>
-      </header>
 
-      <main className="page-container py-8">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-3 border-b border-border mb-8">
+        <div className="flex items-center gap-2 p-1 bg-card border border-border rounded-xl w-fit shadow-subtle mb-8">
           <button
             onClick={() => setActiveTab('schedule')}
-            className={`pb-3 text-sm font-semibold transition-all relative ${
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
               activeTab === 'schedule'
-                ? 'text-primary-600 border-b-2 border-primary-600'
-                : 'text-muted hover:text-navy'
+                ? 'bg-primary text-white shadow-subtle'
+                : 'text-muted hover:text-foreground hover:bg-surface-secondary'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <CalendarDays className="w-4 h-4" />
-              Weekly Clinic Hours & Breaks
-            </div>
+            <CalendarDays className="w-4 h-4" />
+            Weekly Clinic Hours & Breaks
           </button>
           <button
             onClick={() => setActiveTab('leaves')}
-            className={`pb-3 text-sm font-semibold transition-all relative ${
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 ${
               activeTab === 'leaves'
-                ? 'text-primary-600 border-b-2 border-primary-600'
-                : 'text-muted hover:text-navy'
+                ? 'bg-primary text-white shadow-subtle'
+                : 'text-muted hover:text-foreground hover:bg-surface-secondary'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Ban className="w-4 h-4" />
-              Doctor Leaves & Absence ({leaves.length})
-            </div>
+            <Ban className="w-4 h-4" />
+            Doctor Leaves & Absence ({leaves.length})
           </button>
         </div>
 
@@ -332,7 +317,7 @@ export function DoctorSchedulePage() {
             <div className="lg:col-span-7 space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h2 className="font-display font-semibold text-navy text-base">Weekly Working Plan</h2>
+                  <h2 className="font-display font-semibold text-foreground text-base">Weekly Working Plan</h2>
                   <p className="text-xs text-muted">Configure clinic hours and break intervals for each weekday</p>
                 </div>
                 <Button
@@ -347,8 +332,8 @@ export function DoctorSchedulePage() {
               </div>
 
               {isLoading ? (
-                <div className="card p-12 text-center">
-                  <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-3" />
+                <div className="card p-12 text-center bg-card border border-border">
+                  <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-3" />
                   <p className="text-sm text-muted">Loading schedule settings...</p>
                 </div>
               ) : (
@@ -367,7 +352,7 @@ export function DoctorSchedulePage() {
                       <motion.div
                         key={dayName}
                         className={`card p-4 sm:p-5 border transition-all ${
-                          dayConfig.active ? 'border-border bg-white shadow-xs' : 'border-slate-200 bg-slate-50/70'
+                          dayConfig.active ? 'border-border bg-card shadow-subtle' : 'border-border/60 bg-surface-secondary/60'
                         }`}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -380,14 +365,14 @@ export function DoctorSchedulePage() {
                               onClick={() => handleDayToggle(dayName)}
                               className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs transition-colors ${
                                 dayConfig.active
-                                  ? 'bg-primary-600 text-white shadow-xs'
-                                  : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                                  ? 'bg-primary text-white shadow-subtle'
+                                  : 'bg-surface-secondary text-muted hover:bg-border'
                               }`}
                             >
                               {dayName.substring(0, 3)}
                             </button>
                             <div>
-                              <h3 className="font-semibold text-sm text-navy">{dayName}</h3>
+                              <h3 className="font-semibold text-sm text-foreground">{dayName}</h3>
                               <p className="text-xs text-muted">
                                 {dayConfig.active
                                   ? `${dayConfig.startTime || '09:00'} — ${dayConfig.endTime || '17:00'} • ${dayConfig.slotDurationMins}m slots`
@@ -402,8 +387,8 @@ export function DoctorSchedulePage() {
                               onClick={() => handleDayToggle(dayName)}
                               className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                                 dayConfig.active
-                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                                  : 'bg-surface-secondary text-muted hover:bg-border'
                               }`}
                             >
                               {dayConfig.active ? 'Working Day' : 'Day Off'}
@@ -424,6 +409,7 @@ export function DoctorSchedulePage() {
                                     type="time"
                                     value={dayConfig.startTime || '09:00'}
                                     onChange={e => handleTimeChange(dayName, 'startTime', e.target.value)}
+                                    aria-label={`${dayName} start time`}
                                     className="input-field text-xs pl-8 py-2"
                                   />
                                 </div>
@@ -438,6 +424,7 @@ export function DoctorSchedulePage() {
                                     type="time"
                                     value={dayConfig.endTime || '17:00'}
                                     onChange={e => handleTimeChange(dayName, 'endTime', e.target.value)}
+                                    aria-label={`${dayName} end time`}
                                     className="input-field text-xs pl-8 py-2"
                                   />
                                 </div>
@@ -449,6 +436,7 @@ export function DoctorSchedulePage() {
                                 <select
                                   value={dayConfig.slotDurationMins || 30}
                                   onChange={e => handleDurationChange(dayName, Number(e.target.value))}
+                                  aria-label={`${dayName} slot duration`}
                                   className="input-field text-xs py-2"
                                 >
                                   {SLOT_DURATIONS.map(d => (
@@ -463,14 +451,14 @@ export function DoctorSchedulePage() {
                             {/* Breaks Section */}
                             <div className="bg-surface p-3 rounded-xl border border-border">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-navy flex items-center gap-1.5">
-                                  <Coffee className="w-3.5 h-3.5 text-amber-600" />
+                                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                  <Coffee className="w-3.5 h-3.5 text-amber-500" />
                                   Breaks & Lunch Intervals
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleAddBreak(dayName)}
-                                  className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                                  className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                   Add Break
@@ -499,7 +487,7 @@ export function DoctorSchedulePage() {
                                       <button
                                         type="button"
                                         onClick={() => handleRemoveBreak(dayName, idx)}
-                                        className="p-1.5 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="p-1.5 text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
                                         title="Delete Break"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -520,10 +508,10 @@ export function DoctorSchedulePage() {
 
             {/* Right 5 Cols: Live Slot Preview */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="card p-6 sticky top-24 shadow-sm border border-border">
+              <div className="card p-6 sticky top-24 shadow-subtle border border-border bg-card">
                 <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
                   <div>
-                    <h3 className="font-display font-bold text-navy text-base flex items-center gap-2">
+                    <h3 className="font-display font-bold text-foreground text-base flex items-center gap-2">
                       <Sun className="w-4 h-4 text-amber-500" />
                       Live Slot Preview
                     </h3>
@@ -531,8 +519,9 @@ export function DoctorSchedulePage() {
                   </div>
                   <button
                     onClick={() => fetchSlotPreview(previewDate)}
-                    className="p-1.5 text-muted hover:text-primary-600 hover:bg-surface rounded-lg"
+                    className="p-1.5 text-muted hover:text-primary hover:bg-surface-secondary rounded-lg transition-colors"
                     title="Refresh Preview"
+                    aria-label="Refresh Preview"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -547,6 +536,7 @@ export function DoctorSchedulePage() {
                       type="date"
                       value={previewDate}
                       onChange={e => setPreviewDate(e.target.value)}
+                      aria-label="Preview calendar date"
                       className="input-field text-xs pl-10"
                     />
                   </div>
@@ -555,7 +545,7 @@ export function DoctorSchedulePage() {
                 {/* Preview Result Content */}
                 {isPreviewLoading ? (
                   <div className="p-8 text-center">
-                    <div className="w-8 h-8 border-3 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-2" />
+                    <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-xs text-muted">Calculating consultation slots...</p>
                   </div>
                 ) : !previewSlots ? (
@@ -563,17 +553,17 @@ export function DoctorSchedulePage() {
                     Select a date above to preview slots.
                   </div>
                 ) : previewSlots.onLeave ? (
-                  <div className="p-5 bg-red-50 border border-red-200 rounded-xl text-center space-y-2">
+                  <div className="p-5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl text-center space-y-2">
                     <Ban className="w-8 h-8 text-red-500 mx-auto" />
-                    <h4 className="font-semibold text-red-900 text-sm">Doctor is On Leave</h4>
-                    <p className="text-xs text-red-700">
+                    <h4 className="font-semibold text-red-900 dark:text-red-200 text-sm">Doctor is On Leave</h4>
+                    <p className="text-xs text-red-700 dark:text-red-300">
                       {previewSlots.leaveReason || 'A scheduled leave blocks all appointment bookings on this date.'}
                     </p>
                   </div>
                 ) : !previewSlots.workingDay ? (
-                  <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
-                    <Moon className="w-8 h-8 text-slate-400 mx-auto" />
-                    <h4 className="font-semibold text-navy text-sm">Clinic Closed / Off Day</h4>
+                  <div className="p-5 bg-surface-secondary/70 border border-border rounded-xl text-center space-y-2">
+                    <Moon className="w-8 h-8 text-muted mx-auto" />
+                    <h4 className="font-semibold text-foreground text-sm">Clinic Closed / Off Day</h4>
                     <p className="text-xs text-muted">
                       No availability configured for {previewSlots.dayOfWeek}. Patients cannot book appointments on this day.
                     </p>
@@ -582,7 +572,7 @@ export function DoctorSchedulePage() {
                   <div>
                     <div className="flex items-center justify-between mb-3 text-xs">
                       <span className="text-muted font-medium">
-                        {previewSlots.dayOfWeek} • <strong className="text-navy">{previewSlots.slots.length}</strong> available slots
+                        {previewSlots.dayOfWeek} • <strong className="text-foreground">{previewSlots.slots.length}</strong> available slots
                       </span>
                       <span className="badge badge-green text-xs font-semibold">Active Hours</span>
                     </div>
@@ -596,7 +586,7 @@ export function DoctorSchedulePage() {
                       {previewSlots.slots.map((slot: TimeSlotDto, i: number) => (
                         <div
                           key={i}
-                          className="px-2.5 py-2 bg-surface hover:bg-primary-50 hover:border-primary-300 border border-border rounded-xl text-center text-xs font-semibold text-navy transition-all shadow-2xs"
+                          className="px-2.5 py-2 bg-surface hover:bg-primary/10 hover:border-primary/40 border border-border rounded-xl text-center text-xs font-semibold text-foreground transition-all shadow-subtle"
                         >
                           {slot.formattedTime}
                         </div>
@@ -617,11 +607,11 @@ export function DoctorSchedulePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left 5 cols: Request / Record Leave */}
             <div className="lg:col-span-5">
-              <div className="card p-6">
+              <div className="card p-6 bg-card border border-border">
                 <div className="flex items-center gap-2.5 pb-4 border-b border-border mb-4">
                   <Ban className="w-5 h-5 text-red-500" />
                   <div>
-                    <h3 className="font-display font-semibold text-navy text-base">Schedule Doctor Leave</h3>
+                    <h3 className="font-display font-semibold text-foreground text-base">Schedule Doctor Leave</h3>
                     <p className="text-xs text-muted">Block consultation dates for vacations, conferences, or emergencies</p>
                   </div>
                 </div>
@@ -634,6 +624,7 @@ export function DoctorSchedulePage() {
                       value={leaveForm.startDate}
                       onChange={e => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
                       required
+                      aria-label="Leave start date"
                       className="input-field text-xs"
                     />
                   </div>
@@ -645,6 +636,7 @@ export function DoctorSchedulePage() {
                       value={leaveForm.endDate}
                       onChange={e => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
                       required
+                      aria-label="Leave end date"
                       className="input-field text-xs"
                     />
                   </div>
@@ -656,6 +648,7 @@ export function DoctorSchedulePage() {
                       value={leaveForm.reason || ''}
                       onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })}
                       placeholder="e.g. Attending national medical conference / Personal leave"
+                      aria-label="Reason for leave"
                       className="input-field text-xs"
                     />
                   </div>
@@ -676,10 +669,10 @@ export function DoctorSchedulePage() {
 
             {/* Right 7 cols: Scheduled Leaves List */}
             <div className="lg:col-span-7">
-              <div className="card p-6">
+              <div className="card p-6 bg-card border border-border">
                 <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
                   <div>
-                    <h3 className="font-display font-semibold text-navy text-base">Scheduled Leaves</h3>
+                    <h3 className="font-display font-semibold text-foreground text-base">Scheduled Leaves</h3>
                     <p className="text-xs text-muted">All active, future, and past absence periods</p>
                   </div>
                   <Badge variant="blue">{leaves.length} Recorded</Badge>
@@ -688,7 +681,7 @@ export function DoctorSchedulePage() {
                 {leaves.length === 0 ? (
                   <div className="py-12 text-center">
                     <Shield className="w-10 h-10 text-muted mx-auto mb-2" />
-                    <h4 className="font-semibold text-navy text-sm">No leaves scheduled</h4>
+                    <h4 className="font-semibold text-foreground text-sm">No leaves scheduled</h4>
                     <p className="text-xs text-muted">Your clinic schedule is active according to your weekly plan.</p>
                   </div>
                 ) : (
@@ -697,7 +690,7 @@ export function DoctorSchedulePage() {
                       <div key={l.id} className="py-3.5 flex items-start justify-between gap-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-navy">
+                            <span className="text-sm font-semibold text-foreground">
                               {l.startDate} {l.endDate && l.endDate !== l.startDate ? `— ${l.endDate}` : ''}
                             </span>
                             <span className="badge badge-amber text-xs font-medium">On Leave</span>
@@ -709,8 +702,9 @@ export function DoctorSchedulePage() {
 
                         <button
                           onClick={() => handleCancelLeave(l.id)}
-                          className="p-1.5 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
                           title="Cancel Leave"
+                          aria-label="Cancel Leave"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

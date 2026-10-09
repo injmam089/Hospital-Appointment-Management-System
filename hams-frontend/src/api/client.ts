@@ -59,10 +59,66 @@ apiClient.interceptors.response.use(
 
 export function extractApiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as ApiError | undefined;
-    if (data?.detail) return data.detail;
-    if (error.response?.status === 429) return 'Too many requests. Please wait and try again.';
-    if (!error.response) return 'Network error. Please check your connection.';
+    // 1. Connection / Network failure
+    if (!error.response) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        return 'The request to hospital services timed out. Please check your connection and try again.';
+      }
+      return 'Unable to connect to HAMS hospital services. Please check your connection and try again.';
+    }
+
+    const status = error.response.status;
+    const data = error.response.data as ApiError | undefined;
+
+    // 2. If backend supplied a clean detail message without raw tech traces
+    if (data?.detail && typeof data.detail === 'string') {
+      const d = data.detail.trim();
+      const isTechnicalTrace =
+        d.includes('org.hibernate') ||
+        d.includes('PSQLException') ||
+        d.includes('NullPointerException') ||
+        d.includes('SQLException') ||
+        d.includes('JDBC') ||
+        d.includes('Stack trace') ||
+        d.includes('Syntax error') ||
+        d.includes('could not execute statement');
+
+      if (!isTechnicalTrace) {
+        return d;
+      }
+    }
+
+    // 3. Status-based clinical error fallbacks
+    switch (status) {
+      case 400:
+        return 'Invalid request details submitted. Please check the information and try again.';
+      case 401:
+        return 'Your clinical session has expired. Please sign in again to continue.';
+      case 403:
+        return 'You do not have authorization to access this clinical record or action.';
+      case 404:
+        return 'The requested hospital record could not be found.';
+      case 409:
+        return 'A scheduling conflict occurred (e.g. slot already booked). Please select an alternate slot.';
+      case 422:
+        return 'Validation error. Please verify the submitted form values.';
+      case 429:
+        return 'Too many requests. Please wait a moment before trying again.';
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return 'The hospital service encountered a temporary error. Please try again shortly.';
+      default:
+        return 'An unexpected error occurred while communicating with hospital services.';
+    }
   }
+
+  if (error instanceof Error) {
+    if (error.message && !error.message.includes('object Object')) {
+      return error.message;
+    }
+  }
+
   return 'An unexpected error occurred. Please try again.';
 }

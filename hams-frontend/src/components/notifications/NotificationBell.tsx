@@ -2,13 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bell,
-  CheckCheck,
-  Calendar,
-  FileText,
-  Clock,
-  ExternalLink,
-  Info,
+  Bell, CheckCheck, CalendarDays, CalendarCheck,
+  CalendarX, CalendarClock, Pill, Clock,
+  ExternalLink, Info
 } from 'lucide-react';
 import { notificationApi } from '../../api/notification';
 import type { NotificationItem } from '../../types';
@@ -80,42 +76,64 @@ export function NotificationBell() {
     }
   };
 
-  // Close on outside click
+  // Close on outside click or Escape key
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen]);
 
   const getIcon = (type: string) => {
-    if (type.includes('APPOINTMENT')) {
-      return <Calendar className="w-4 h-4 text-primary-600" />;
+    const t = type.toUpperCase();
+    if (t.includes('CANCELLED')) {
+      return <CalendarX className="w-4 h-4 text-danger" />;
     }
-    if (type.includes('PRESCRIPTION')) {
-      return <FileText className="w-4 h-4 text-emerald-600" />;
+    if (t.includes('REMINDER')) {
+      return <CalendarClock className="w-4 h-4 text-warning" />;
     }
-    return <Info className="w-4 h-4 text-amber-600" />;
+    if (t.includes('CONFIRMED')) {
+      return <CalendarCheck className="w-4 h-4 text-primary" />;
+    }
+    if (t.includes('APPOINTMENT')) {
+      return <CalendarDays className="w-4 h-4 text-primary" />;
+    }
+    if (t.includes('PRESCRIPTION')) {
+      return <Pill className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
+    }
+    return <Info className="w-4 h-4 text-primary" />;
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleToggle}
-        aria-label="Notifications"
-        className="relative p-2 rounded-xl text-navy/70 hover:text-navy hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+        aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        className="relative min-w-[44px] min-h-[44px] p-2 rounded-xl text-muted hover:text-foreground hover:bg-surface-secondary transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
           <motion.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-medical-red text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none shadow-sm"
+            aria-live="polite"
+            className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none shadow-sm"
           >
             {unreadCount > 99 ? '99+' : unreadCount}
           </motion.span>
@@ -125,16 +143,16 @@ export function NotificationBell() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-border rounded-2xl shadow-modal z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-80 sm:w-96 bg-card border border-border rounded-2xl shadow-modal z-50 overflow-hidden text-foreground"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-slate-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-secondary">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-navy">Notifications</h3>
+                <h3 className="text-xs font-bold text-foreground">Notifications</h3>
                 {unreadCount > 0 && (
                   <span className="badge badge-blue text-[10px] py-0.5 px-2">
                     {unreadCount} new
@@ -144,7 +162,7 @@ export function NotificationBell() {
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
-                  className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+                  className="text-xs text-primary hover:text-primary-hover font-semibold flex items-center gap-1 transition-colors"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
                   Mark all read
@@ -169,23 +187,23 @@ export function NotificationBell() {
                     onClick={() => {
                       if (!item.read) handleMarkAsRead(item.id, { stopPropagation: () => {} } as any);
                     }}
-                    className={`p-3.5 flex items-start gap-3 transition-colors hover:bg-slate-50 cursor-pointer ${
-                      !item.read ? 'bg-primary-50/40' : ''
+                    className={`p-3.5 flex items-start gap-3 transition-colors hover:bg-surface-secondary/70 cursor-pointer ${
+                      !item.read ? 'bg-primary-soft/30' : ''
                     }`}
                   >
-                    <div className="p-2 rounded-lg bg-white border border-border flex-shrink-0 mt-0.5">
+                    <div className="p-2 rounded-xl bg-surface border border-border flex-shrink-0 mt-0.5 shadow-subtle">
                       {getIcon(item.type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-xs ${!item.read ? 'font-semibold text-navy' : 'font-medium text-slate-700'}`}>
+                        <p className={`text-xs ${!item.read ? 'font-bold text-foreground' : 'font-medium text-foreground/80'}`}>
                           {item.title}
                         </p>
                         {!item.read && (
-                          <span className="w-2 h-2 rounded-full bg-primary-600 flex-shrink-0 mt-1" />
+                          <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />
                         )}
                       </div>
-                      <p className="text-[11px] text-muted line-clamp-2 mt-0.5">
+                      <p className="text-[11px] text-muted line-clamp-2 mt-0.5 leading-relaxed">
                         {item.message}
                       </p>
                       <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted">
@@ -199,13 +217,13 @@ export function NotificationBell() {
             </div>
 
             {/* Footer */}
-            <div className="p-2.5 bg-slate-50 border-t border-border text-center">
+            <div className="p-2.5 bg-surface-secondary border-t border-border text-center">
               <button
                 onClick={() => {
                   setIsOpen(false);
                   navigate('/notifications');
                 }}
-                className="w-full py-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full py-1.5 text-xs font-semibold text-primary hover:text-primary-hover flex items-center justify-center gap-1.5 transition-colors"
               >
                 <span>View All Notifications</span>
                 <ExternalLink className="w-3.5 h-3.5" />

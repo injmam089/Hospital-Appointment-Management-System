@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import { extractApiError } from '../../api/client';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import type { Gender } from '../../types';
 
 interface RegisterForm {
@@ -124,7 +125,11 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] text-[#0F172A] flex items-center justify-center p-6 font-sans">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 font-sans relative">
+      <div className="absolute top-4 right-4 z-30">
+        <ThemeToggle size="sm" />
+      </div>
+
       <motion.div
         className="w-full max-w-lg"
         initial={{ opacity: 0, y: 14 }}
@@ -132,15 +137,15 @@ export function RegisterPage() {
         transition={{ duration: 0.3 }}
       >
         <div className="flex items-center gap-2.5 mb-8 justify-center">
-          <div className="w-8 h-8 bg-[#2563EB] rounded-xl flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-sm">
             <Stethoscope className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
           </div>
-          <Link to="/" className="font-display font-bold text-[#0F172A] text-xl tracking-tight">HAMS Healthcare</Link>
+          <Link to="/" className="font-display font-bold text-foreground text-xl tracking-tight">HAMS Healthcare</Link>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-card p-6 sm:p-8">
-          <h1 className="font-display text-2xl font-bold text-[#0F172A] mb-1 tracking-tight">Create your patient account</h1>
-          <p className="text-sm text-[#64748B] mb-6">Register to search doctors and book appointments</p>
+        <div className="bg-surface rounded-2xl border border-border shadow-card p-6 sm:p-8">
+          <h1 className="font-display text-2xl font-bold text-foreground mb-1 tracking-tight">Create your patient account</h1>
+          <p className="text-sm text-muted mb-6">Register to search doctors and book appointments</p>
 
           {errors.general && (
             <motion.div
