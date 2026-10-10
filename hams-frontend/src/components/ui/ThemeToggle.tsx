@@ -16,45 +16,10 @@ const themeOptions: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
   { mode: 'system', label: 'System', icon: Monitor },
 ];
 
-export function ThemeToggle({ variant = 'dropdown', className, size = 'md' }: ThemeToggleProps) {
+export function ThemeToggle({ variant = 'switch', className, size = 'sm' }: ThemeToggleProps) {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Switch pill variant matching the reference design
-  if (variant === 'switch') {
-    const isDark = resolvedTheme === 'dark';
-    return (
-      <button
-        type="button"
-        role="switch"
-        aria-checked={isDark}
-        aria-label={`Switch theme (currently ${resolvedTheme})`}
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-        className={cn(
-          'relative inline-flex items-center w-[68px] h-[34px] p-0.5 rounded-full border border-border bg-surface-secondary hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-          className
-        )}
-      >
-        <span
-          className={cn(
-            'flex-1 flex items-center justify-center h-full rounded-full transition-all duration-200',
-            !isDark ? 'bg-surface text-amber-500 shadow-subtle' : 'text-muted hover:text-foreground'
-          )}
-        >
-          <Sun className="w-3.5 h-3.5" />
-        </span>
-        <span
-          className={cn(
-            'flex-1 flex items-center justify-center h-full rounded-full transition-all duration-200',
-            isDark ? 'bg-primary text-white shadow-subtle' : 'text-muted hover:text-foreground'
-          )}
-        >
-          <Moon className="w-3.5 h-3.5" />
-        </span>
-      </button>
-    );
-  }
 
   // Close dropdown on outside click or Escape key
   useEffect(() => {
@@ -77,6 +42,91 @@ export function ThemeToggle({ variant = 'dropdown', className, size = 'md' }: Th
       };
     }
   }, [isOpen]);
+
+  // Master Patient Portal Switch Pill design (Default & Standard across entire HAMS)
+  if (variant === 'switch') {
+    const isDark = resolvedTheme === 'dark';
+    return (
+      <div className={cn('relative inline-flex items-center', className)} ref={containerRef}>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isDark}
+          aria-expanded={isOpen}
+          aria-haspopup="menu"
+          aria-label={`Current theme: ${theme} (${resolvedTheme}). Click to toggle light/dark or right-click/long-press for system mode.`}
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }}
+          className={cn(
+            'relative inline-flex items-center w-[68px] h-[34px] min-w-[44px] min-h-[44px] p-0.5 rounded-full border border-border bg-surface-secondary hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+            className
+          )}
+        >
+          <span
+            className={cn(
+              'flex-1 flex items-center justify-center h-full rounded-full transition-all duration-200',
+              !isDark ? 'bg-surface text-amber-500 shadow-subtle' : 'text-muted hover:text-foreground'
+            )}
+          >
+            <Sun className="w-3.5 h-3.5" />
+          </span>
+          <span
+            className={cn(
+              'flex-1 flex items-center justify-center h-full rounded-full transition-all duration-200',
+              isDark ? 'bg-primary text-white shadow-subtle' : 'text-muted hover:text-foreground'
+            )}
+          >
+            <Moon className="w-3.5 h-3.5" />
+          </span>
+        </button>
+
+        {/* Optional System Mode Selector Popover via right-click / menu */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-full mt-2 w-36 rounded-xl bg-surface border border-border shadow-modal p-1 z-50 focus:outline-none"
+              role="menu"
+              aria-orientation="vertical"
+            >
+              {themeOptions.map(({ mode, label, icon: Icon }) => {
+                const isSelected = theme === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setTheme(mode);
+                      setIsOpen(false);
+                    }}
+                    role="menuitem"
+                    className={cn(
+                      'w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg font-medium transition-colors select-none text-left',
+                      isSelected
+                        ? 'bg-primary-soft text-primary font-semibold'
+                        : 'text-foreground hover:bg-surface-secondary'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4" />
+                      <span>{label}</span>
+                    </div>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   // Segmented Pill Variant
   if (variant === 'segmented') {
